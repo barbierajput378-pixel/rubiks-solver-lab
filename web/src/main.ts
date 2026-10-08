@@ -572,13 +572,24 @@ function buildDoctor() {
 }
 function buildLearn() {
   const c = h("section", { class: "card" });
-  const info = h("p", { class: "subtle", id: "learn-hint" }, ["Solve first, then request the next hint."]);
+  const info = h("p", { class: "learn-hint-text", id: "learn-hint", role: "status", "aria-live": "polite" }, ["Solve the cube, then reveal its moves one at a time and play them yourself."]);
   learnHint = info;
-  const faces = h("div", { class: "row", "aria-label": "Try a face turn" });
+  const hintPanel = h("div", { class: "learn-hint-panel" }, [h("span", { class: "learn-glyph", "aria-hidden": "true" }, [icon(ICONS.graduation, 20)]), info]);
+  const faceBtn = (label: string, fn: () => void, aria: string) => { const b = button(label, fn, false, aria); b.classList.add("face-btn"); return b; };
+  const faces = h("div", { class: "face-grid", "aria-label": "Try a face turn" });
   for (const f of [Face.U, Face.D, Face.L, Face.R, Face.F, Face.B]) {
-    faces.append(button(FACE_NAMES[f], () => commitTurn(f, 1), false, `Try ${FACE_NAMES[f]} clockwise`), button(`${FACE_NAMES[f]}'`, () => commitTurn(f, 3), false, `Try ${FACE_NAMES[f]} counter-clockwise`));
+    faces.append(h("div", { class: "face-pair" }, [faceBtn(FACE_NAMES[f], () => commitTurn(f, 1), `Try ${FACE_NAMES[f]} clockwise`), faceBtn(`${FACE_NAMES[f]}'`, () => commitTurn(f, 3), `Try ${FACE_NAMES[f]} counter-clockwise`)]));
   }
-  c.append(info, h("div", { class: "row" }, [button("Solve for hints", () => { learnStep = 0; solveNow(); }), button("Reveal expected move", () => { if (!solution.length) { info.textContent = "No solution loaded yet. Solve this cube first."; return; } info.textContent = `Hint ${learnStep + 1}/${solution.length}: try ${MOVES[solution[learnStep]!]!.name} using the keyboard or face buttons.`; })]), faces);
+  const reveal = button("Reveal next move", () => {
+    if (!solution.length) { info.textContent = "No solution yet — solve this cube first."; return; }
+    info.textContent = `Hint ${learnStep + 1}/${solution.length}: play ${MOVES[solution[learnStep]!]!.name} with the keyboard or the buttons below.`;
+  });
+  c.append(
+    hintPanel,
+    h("div", { class: "row learn-controls" }, [labelIconBtn(ICONS.graduation, "Solve for hints", () => { learnStep = 0; solveNow(); }, true), reveal]),
+    h("p", { class: "eyebrow" }, ["TRY A TURN"]),
+    faces,
+  );
   return c;
 }
 type Aggregate = { solver: string; depth: string; count: number; successRate: number; avgLength: number; avgTimeMs: number; avgNodes: number };

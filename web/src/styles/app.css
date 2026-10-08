@@ -1034,6 +1034,54 @@ label.field {
   margin: 0;
 }
 
+/* ---- learn / hint ---- */
+.learn-hint-panel {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  border-radius: var(--r-md);
+  border: 1px solid var(--border);
+  background: var(--bg-elev-2);
+  box-shadow: var(--inset-hi);
+}
+.learn-glyph {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-sm);
+  background: var(--bg-elev-1);
+  border: 1px solid var(--border);
+  color: var(--accent);
+  flex: none;
+}
+.learn-hint-text {
+  margin: 0;
+  font-size: var(--fs-body);
+  color: var(--text);
+}
+.learn-controls {
+  margin: var(--space-lg) 0;
+}
+.face-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: var(--space-sm);
+}
+.face-pair {
+  display: flex;
+  gap: 4px;
+}
+.face-pair .btn {
+  flex: 1;
+}
+.face-btn {
+  font-family: var(--mono);
+  font-weight: 600;
+  justify-content: center;
+}
+
 /* ---- charts (shared) ---- */
 .explorer-chart {
   min-height: 170px;
