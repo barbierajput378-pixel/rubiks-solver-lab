@@ -7,6 +7,7 @@ import type { CubieCube, FaceletCube, SolveStage, SolverProgress } from "@cubela
 import { CubeView } from "./cube3d/CubeView";
 import { runSolve } from "./engine/solverClient";
 import { buildScanner } from "./scanner/scanner";
+import benchmarkData from "../../bench-out/results.json";
 import { h, toast } from "./ui/dom";
 
 const root = document.querySelector<HTMLElement>("#app")!;
@@ -237,10 +238,14 @@ function buildLearn() {
 }
 function buildBench() {
   const c = card("Benchmark dashboard", "Measurements from the committed Phase 3 run. Values are machine-dependent.");
-  const link = h("a", { href: "/bench-out/results.json", target: "_blank", rel: "noreferrer" }, ["Open raw benchmark JSON"]);
-  const table = h("div", { class: "bench-placeholder" }, ["Kociemba sample: 30/30 at depth 5 (6.43 moves, 2.37 ms mean); 29/30 random (23.10 moves, 466 ms mean). See docs/BENCHMARK_ANALYSIS.md for the full table and limitations."]);
-  c.append(link, table);
-  fetch("/bench-out/results.json").then((r) => r.json()).then((data) => { const aggs = data.aggregates as Array<{solver:string;depth:string;count:number;successRate:number;avgLength:number;avgTimeMs:number;avgNodes:number}>; table.replaceChildren(...aggs.slice(0, 18).map((a) => h("div", { class: "bench-row" }, [`${a.solver} · ${a.depth}: ${(a.successRate * a.count).toFixed(0)}/${a.count} solved · ${a.avgLength.toFixed(2)} moves · ${a.avgTimeMs.toFixed(2)} ms · ${a.avgNodes.toFixed(0)} nodes`]))); }).catch(() => { table.textContent = "Benchmark JSON could not be loaded. See docs/BENCHMARK_ANALYSIS.md."; });
+  type Aggregate = { solver: string; depth: string; count: number; successRate: number; avgLength: number; avgTimeMs: number; avgNodes: number };
+  const table = h("div", { class: "bench-placeholder" });
+  const input = h("input", { type: "file", accept: "application/json,.json", "aria-label": "Load benchmark JSON" }) as HTMLInputElement;
+  const renderRows = (aggs: Aggregate[]) => table.replaceChildren(...aggs.map((a) => h("div", { class: "bench-row" }, [`${a.solver} · ${a.depth}: ${(a.successRate * a.count).toFixed(0)}/${a.count} solved · ${a.avgLength.toFixed(2)} moves · ${a.avgTimeMs.toFixed(2)} ms · ${a.avgNodes.toFixed(0)} nodes`])));
+  renderRows((benchmarkData.aggregates ?? []) as Aggregate[]);
+  input.onchange = async () => { const file = input.files?.[0]; if (!file) return; try { const data = JSON.parse(await file.text()) as { aggregates?: Aggregate[] }; if (!Array.isArray(data.aggregates)) throw Error("Missing aggregates array"); renderRows(data.aggregates); toast(`Loaded ${data.aggregates.length} benchmark groups`); } catch (e) { toast(`Could not load benchmark JSON: ${(e as Error).message}`); } };
+  const download = button("Download current results JSON", () => { const blob = new Blob([JSON.stringify(benchmarkData, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "cubelab-benchmark-results.json"; a.click(); URL.revokeObjectURL(url); });
+  c.append(h("div", { class: "row" }, [input, download]), h("p", { class: "subtle" }, ["This dashboard displays the bundled measured dataset or a JSON file from another benchmark run. Full methodology and limitations: docs/BENCHMARK_ANALYSIS.md."]), table);
   return c;
 }
 function buildScannerView() {
