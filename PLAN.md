@@ -46,7 +46,7 @@ LICENSE     MIT
       5. ✅ Kociemba-style two-phase (own impl; atomic move tables + product-BFS pruning;
          avg ~23 moves, <1s build, fast solves).
       + ✅ admissibility verified vs BFS true distances at small depths.
-- [ ] **Phase 3 — Benchmark engine.** `cubelab-bench` CLI (JSON+CSV), honest depth caps,
+- [x] **Phase 3 — Benchmark engine.** `cubelab-bench` CLI (JSON+CSV), honest depth caps,
       plots into `docs/benchmarks/`, `docs/BENCHMARK_ANALYSIS.md`. Commit.
 - [ ] **Phase 4 — Web app.** three.js 3D cube (view drag, face turn, keys), scramble/solve/
       reset, move-by-move playback + timeline, manual color painter w/ live validity,

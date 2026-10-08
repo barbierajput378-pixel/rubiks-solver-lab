@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" font-family="Inter, system-ui, sans-serif">
+<rect width="760" height="420" fill="#0e1116" rx="8"/>
+<text x="64" y="26" fill="#c9d1d9" font-size="16" font-weight="600">Average solve time by scramble depth (3×3)</text>
+<text x="16" y="199" fill="#c9d1d9" font-size="11" transform="rotate(-90 16 199)" text-anchor="middle">ms (log)</text>
+<line x1="64" y1="350" x2="744" y2="350" stroke="#2d333b" stroke-width="1"/>
+<text x="58" y="353" fill="#c9d1d9" font-size="10" text-anchor="end">0.10</text>
+<line x1="64" y1="289.6" x2="744" y2="289.6" stroke="#2d333b" stroke-width="1"/>
+<text x="58" y="292.6" fill="#c9d1d9" font-size="10" text-anchor="end">0.63</text>
+<line x1="64" y1="229.2" x2="744" y2="229.2" stroke="#2d333b" stroke-width="1"/>
+<text x="58" y="232.2" fill="#c9d1d9" font-size="10" text-anchor="end">4.0</text>
+<line x1="64" y1="168.8" x2="744" y2="168.8" stroke="#2d333b" stroke-width="1"/>
+<text x="58" y="171.8" fill="#c9d1d9" font-size="10" text-anchor="end">25</text>
+<line x1="64" y1="108.39999999999998" x2="744" y2="108.39999999999998" stroke="#2d333b" stroke-width="1"/>
+<text x="58" y="111.39999999999998" fill="#c9d1d9" font-size="10" text-anchor="end">158</text>
+<line x1="64" y1="48" x2="744" y2="48" stroke="#2d333b" stroke-width="1"/>
+<text x="58" y="51" fill="#c9d1d9" font-size="10" text-anchor="end">1.0k</text>
+<rect x="77.6" y="246.2" width="24.5" height="103.8" fill="#6ea8fe" rx="2"><title>kociemba @ 5: 2.4</title></rect>
+<rect x="104.8" y="172.4" width="24.5" height="177.6" fill="#63e6be" rx="2"><title>thistlethwaite @ 5: 23</title></rect>
+<rect x="132.0" y="116.2" width="24.5" height="233.8" fill="#ffd43b" rx="2"><title>beginner @ 5: 125</title></rect>
+<rect x="159.2" y="182.7" width="24.5" height="167.3" fill="#ff8787" rx="2"><title>ida-pdb @ 5: 16</title></rect>
+<text x="132.0" y="366" fill="#c9d1d9" font-size="11" text-anchor="middle">5</text>
+<rect x="213.6" y="279.1" width="24.5" height="70.9" fill="#6ea8fe" rx="2"><title>kociemba @ 8: 0.87</title></rect>
+<rect x="240.8" y="90.8" width="24.5" height="259.2" fill="#63e6be" rx="2"><title>thistlethwaite @ 8: 271</title></rect>
+<rect x="268.0" y="110.9" width="24.5" height="239.1" fill="#ffd43b" rx="2"><title>beginner @ 8: 147</title></rect>
+<rect x="295.2" y="118.4" width="24.5" height="231.6" fill="#ff8787" rx="2"><title>ida-pdb @ 8: 117</title></rect>
+<text x="268.0" y="366" fill="#c9d1d9" font-size="11" text-anchor="middle">8</text>
+<rect x="349.6" y="104.4" width="24.5" height="245.6" fill="#6ea8fe" rx="2"><title>kociemba @ 11: 179</title></rect>
+<rect x="376.8" y="72.1" width="24.5" height="277.9" fill="#63e6be" rx="2"><title>thistlethwaite @ 11: 479</title></rect>
+<rect x="404.0" y="90.2" width="24.5" height="259.8" fill="#ffd43b" rx="2"><title>beginner @ 11: 276</title></rect>
+<text x="404.0" y="366" fill="#c9d1d9" font-size="11" text-anchor="middle">11</text>
+<rect x="485.6" y="74.3" width="24.5" height="275.7" fill="#6ea8fe" rx="2"><title>kociemba @ 15: 448</title></rect>
+<rect x="512.8" y="50.2" width="24.5" height="299.8" fill="#63e6be" rx="2"><title>thistlethwaite @ 15: 936</title></rect>
+<rect x="540.0" y="91.2" width="24.5" height="258.8" fill="#ffd43b" rx="2"><title>beginner @ 15: 268</title></rect>
+<text x="540.0" y="366" fill="#c9d1d9" font-size="11" text-anchor="middle">15</text>
+<rect x="621.6" y="79.1" width="24.5" height="270.9" fill="#6ea8fe" rx="2"><title>kociemba @ 20: 388</title></rect>
+<rect x="648.8" y="76.9" width="24.5" height="273.1" fill="#63e6be" rx="2"><title>thistlethwaite @ 20: 414</title></rect>
+<rect x="676.0" y="90.7" width="24.5" height="259.3" fill="#ffd43b" rx="2"><title>beginner @ 20: 272</title></rect>
+<text x="676.0" y="366" fill="#c9d1d9" font-size="11" text-anchor="middle">20</text>
+<rect x="64" y="391" width="11" height="11" fill="#6ea8fe" rx="2"/>
+<text x="80" y="400" fill="#c9d1d9" font-size="11">kociemba</text>
+<rect x="214" y="391" width="11" height="11" fill="#63e6be" rx="2"/>
+<text x="230" y="400" fill="#c9d1d9" font-size="11">thistlethwaite</text>
+<rect x="364" y="391" width="11" height="11" fill="#ffd43b" rx="2"/>
+<text x="380" y="400" fill="#c9d1d9" font-size="11">beginner</text>
+<rect x="514" y="391" width="11" height="11" fill="#ff8787" rx="2"/>
+<text x="530" y="400" fill="#c9d1d9" font-size="11">ida-pdb</text>
+</svg>
