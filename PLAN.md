@@ -29,9 +29,11 @@ LICENSE     MIT
       (what taken / what done differently). Scaffold repo (workspaces, TS, Vitest, licenses).
       Commit. ✅ Done. (Env note: WSL has g++15/cmake4 but **no emscripten** → TS-first engine
       confirmed; all npm/git must run inside WSL, Windows npm mangles the UNC path.)
-- [ ] **Phase 1 — Cube model + tests.** Cubie model (8 corners/12 edges, perm+orient),
+- [x] **Phase 1 — Cube model + tests.** Cubie model (8 corners/12 edges, perm+orient),
       18 move tables, compose/invert, `docs/CONVENTIONS.md`, structured validity checker,
-      seeded uniform-random valid-state generator. Full Vitest suite. Commit.
+      seeded uniform-random valid-state generator. Full Vitest suite. ✅ 22 tests green
+      (incl. superflip oracle + 300-sequence facelet↔cubie agreement). Geometric 3D model
+      derives move tables, so orientation constants aren't hand-entered.
 - [ ] **Phase 2 — Solvers** (each behind `Solver`, each reporting nodes/time/memory/length,
       with timeout + cancel):
       1. BFS + bidirectional BFS on 2x2
