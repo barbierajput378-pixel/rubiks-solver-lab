@@ -75,3 +75,30 @@ LICENSE     MIT
 - No external cube-solving library for solve logic. UI/math libs OK (record licenses).
 - Never claim unmeasured results in the README.
 - Infeasible → closest honest version + document under Limitations + continue.
+
+## Premium UI redesign (in progress)
+
+Goal: lift the web UI to a ~$400-grade product while keeping the dark-first, glass,
+Linear/Raycast-restraint vibe and **all** behaviour. Vanilla TS + Vite + three.js + hand-written
+CSS only. Art direction, audit and token spec live in `docs/redesign/` and `DESIGN.md`.
+
+- [x] **Step 1 — Audit.** Screenshot every view @1440×900 + 390×844 (`docs/redesign/before/`),
+      write `docs/redesign/AUDIT.md` (10 problems + preservation list). Repeatable capture:
+      `node docs/redesign/capture.mjs <before|after> [theme] [views…]`.
+- [ ] **Step 2 — Direction + DESIGN.md.** `docs/redesign/DIRECTIONS.md` (3 candidates, pick one);
+      `DESIGN.md` single source of truth (palette, type, spacing, radius, elevation, motion,
+      z-index, component rules).
+- [ ] **Step 3 — Tokens + shell.** Rebuild `web/src/styles` tokens + shared styles; refine nav,
+      page headers, keyboard-hint, theme/palette toggles.
+- [ ] **Step 4 — Solve view.** Cube as hero (key/rim/ambient light, ground shadow, glow, idle
+      drift that stops under reduced-motion); floating glass control panels; polished playback
+      bar + move chips; mobile bottom-sheet.
+- [ ] **Step 5 — Other views.** Race (identities, animated bars, winner moment), Explorer + Bench
+      charts (axes, gridlines, tooltips, solver colors), Scanner overlay + confidence + denied
+      state, Lab, Doctor, Learn. Empty/loading/error states everywhere.
+- [ ] **Step 6 — Micro-interactions.** Hover/press/focus, eased transitions, stat tick-ups,
+      staggered entrances; reduced-motion safe; never hurt the 60fps cube.
+- [ ] **Step 7 — Visual QA loop** (after every step): re-screenshot, compare to before/, fix
+      overlap/clipping/contrast/alignment; no horizontal scroll at 390px.
+- [ ] **Step 8 — Wrap-up.** `docs/redesign/after/`, README before/after, full `npm test`, prod
+      build, Lighthouse (a11y stays 100, perf not worse).

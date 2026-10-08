@@ -22,3 +22,6 @@ Thumbs.db
 # logs
 *.log
 npm-debug.log*
+# Playwright CLI output (may contain credentials)
+.playwright-cli/
+.playwright/
