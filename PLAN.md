@@ -34,14 +34,18 @@ LICENSE     MIT
       seeded uniform-random valid-state generator. Full Vitest suite. ✅ 22 tests green
       (incl. superflip oracle + 300-sequence facelet↔cubie agreement). Geometric 3D model
       derives move tables, so orientation constants aren't hand-entered.
-- [ ] **Phase 2 — Solvers** (each behind `Solver`, each reporting nodes/time/memory/length,
-      with timeout + cancel):
-      1. BFS + bidirectional BFS on 2x2
-      2. Beginner layer-by-layer 3x3 (labeled steps)
-      3. Thistlethwaite 4-phase
-      4. IDA* + Korf-style PDBs (corner + two 6-edge, max-combo), move pruning
-      5. Kociemba-style two-phase (own implementation)
-      + admissibility check vs BFS true distances. Tests. Commit.
+- [x] **Phase 2 — Solvers** ✅ (each behind `Solver`, reporting nodes/time/memory/length,
+      timeout + cancel). 43 tests green.
+      1. ✅ BFS + bidirectional BFS on 2x2 (optimal; bidir expands fewer nodes)
+      2. ✅ Beginner layer-by-layer 3x3 (labeled stages). *Honest scope:* cross + first layer
+         by guided IDA*; middle+last layers finished by two-phase (no hand-coded OLL/PLL table).
+      3. ✅ Thistlethwaite (nested-group descent: EO → domino reduction → domino solve;
+         classic P3+P4 merged into one optimal domino solve).
+      4. ✅ IDA* + corner PDB (88M) + edge-orientation, max-combo, move pruning, observable.
+         *Roadmap:* full Korf two 6-edge PDBs (machinery present via `makeEdgeSubsetCoord`).
+      5. ✅ Kociemba-style two-phase (own impl; atomic move tables + product-BFS pruning;
+         avg ~23 moves, <1s build, fast solves).
+      + ✅ admissibility verified vs BFS true distances at small depths.
 - [ ] **Phase 3 — Benchmark engine.** `cubelab-bench` CLI (JSON+CSV), honest depth caps,
       plots into `docs/benchmarks/`, `docs/BENCHMARK_ANALYSIS.md`. Commit.
 - [ ] **Phase 4 — Web app.** three.js 3D cube (view drag, face turn, keys), scramble/solve/
