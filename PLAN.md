@@ -52,9 +52,16 @@ LICENSE     MIT
       reset, move-by-move playback + timeline, manual color painter w/ live validity,
       shareable URL encoding. Dark/light, responsive, a11y, web-worker solving and IndexedDB
       optimal-table cache. ✅ Core UI plus first lab views. Build and 43 tests pass.
-- [ ] **Phase 5 — Unique features.** Race Mode, Search Explorer, Heuristic Lab, Validity
-      Doctor, Explainable Solution, Learn/Hint Mode, camera scanner (getUserMedia + HSV/Lab
-      + calibration + confidence + fallbacks), in-app benchmark dashboard. Commit.
+- [ ] **Phase 5 — Unique features.**
+      - [x] 1. Solver Race Mode (2–4 parallel workers, live search stats, winner).
+      - [x] 2. Search Explorer (IDA* threshold and heuristic telemetry, sampled tree).
+      - [x] 3. Heuristic Lab (toggle PDBs and compare nodes/time).
+      - [x] 4. Smart Validity Doctor (plain-language validity checks and fixes).
+      - [x] 5. Explainable Solution (named stages and reasons where supplied by solver).
+      - [x] 6. Learn / Hint Mode.
+      - [ ] 7. Camera scanner (getUserMedia, center calibration, confidence, upload/manual fixes).
+      - [x] 8. In-app benchmark dashboard.
+      - [ ] 9. Optional timer / solve-then-compare.
 - [ ] **Phase 6 — Quality/polish.** Loading states, IndexedDB PDB cache, error states,
       lazy-loading, micro-interactions, onboarding, scanner classifier tests, GitHub
       Actions CI + Pages deploy. Commit.

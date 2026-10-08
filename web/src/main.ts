@@ -6,6 +6,7 @@ import {
 import type { CubieCube, FaceletCube, SolveStage, SolverProgress } from "@cubelab/engine";
 import { CubeView } from "./cube3d/CubeView";
 import { runSolve } from "./engine/solverClient";
+import { buildScanner } from "./scanner/scanner";
 import { h, toast } from "./ui/dom";
 
 const root = document.querySelector<HTMLElement>("#app")!;
@@ -50,7 +51,7 @@ header.append(cbButton);
 shell.append(header);
 
 const tabs = h("nav", { class: "tabs", role: "tablist", "aria-label": "CubeLab sections" });
-const tabNames = [["solve", "Solve"], ["race", "Solver race"], ["explorer", "Search explorer"], ["lab", "Heuristic lab"], ["doctor", "Validity doctor"], ["learn", "Learn / hint"], ["bench", "Benchmarks"]] as const;
+const tabNames = [["solve", "Solve"], ["race", "Solver race"], ["explorer", "Search explorer"], ["lab", "Heuristic lab"], ["doctor", "Validity doctor"], ["learn", "Learn / hint"], ["scanner", "Camera scanner"], ["bench", "Benchmarks"]] as const;
 const content = h("main", { id: "main-content", tabindex: "-1" });
 for (const [id, label] of tabNames) {
   const b = h("button", { class: "tab", role: "tab", "aria-selected": id === activeTab, "aria-controls": "main-content" }, [label]);
@@ -191,10 +192,11 @@ function buildRace() {
     const jobs = selected.map((id) => {
       const row = h("div", { class: "race-row" }); const title = SOLVER_LIST.find((x) => x.id === id)!.name;
       const stats = h("span", { class: "subtle" }, ["Starting…"]); const bar = h("div", { class: "meter" }, [h("span")]); row.append(h("strong", {}, [title]), stats, bar); output.append(row);
-      const job = runSolve(id, cube, { timeoutMs: 30000, progressInterval: 25000 }, { onProgress: (p) => { stats.textContent = `${p.nodesExpanded.toLocaleString()} nodes${p.threshold == null ? "" : ` · depth ${p.threshold}`} · ${p.phase ?? "searching"}`; (bar.firstElementChild as HTMLElement).style.width = `${Math.min(95, Math.log10(p.nodesExpanded + 1) * 15)}%`; }, onBuilding: (t) => { stats.textContent = `Building ${t}…`; } });
-      const start = performance.now();
-      job.promise.then((r) => { stats.textContent = r.solved ? `${r.stats.solutionLength} moves · ${r.stats.timeMs.toFixed(0)} ms` : r.timedOut ? "Timed out" : "No solution"; (bar.firstElementChild as HTMLElement).style.width = r.solved ? "100%" : "0%"; if (r.solved && !output.dataset.winner) { output.dataset.winner = id; toast(`${title} wins the race!`); } }).catch((e) => { stats.textContent = `Error: ${e.message}`; });
-      return { job, start };
+      const startedAt = performance.now(); let liveNodes = 0; let liveDepth = 0; let finished = false;
+      const clock = window.setInterval(() => { if (!finished) stats.textContent = `${liveNodes.toLocaleString()} nodes${liveDepth ? ` · depth ${liveDepth}` : ""} · ${(performance.now() - startedAt).toFixed(0)} ms`; }, 250);
+      const job = runSolve(id, cube, { timeoutMs: 30000, progressInterval: 25000 }, { onProgress: (p) => { liveNodes = p.nodesExpanded; liveDepth = p.threshold ?? p.g ?? 0; stats.textContent = `${p.nodesExpanded.toLocaleString()} nodes${p.threshold == null ? "" : ` · depth ${p.threshold}`} · ${p.phase ?? "searching"}`; (bar.firstElementChild as HTMLElement).style.width = `${Math.min(95, Math.log10(p.nodesExpanded + 1) * 15)}%`; }, onBuilding: (t) => { stats.textContent = `Building ${t}…`; } });
+      job.promise.then((r) => { finished = true; clearInterval(clock); stats.textContent = r.solved ? `${r.stats.solutionLength} moves · ${r.stats.timeMs.toFixed(0)} ms` : r.timedOut ? "Timed out" : "No solution"; (bar.firstElementChild as HTMLElement).style.width = r.solved ? "100%" : "0%"; if (r.solved && !output.dataset.winner) { output.dataset.winner = id; row.classList.add("winner"); toast(`${title} wins the race!`); } }).catch((e) => { finished = true; clearInterval(clock); stats.textContent = `Error: ${e.message}`; });
+      return job;
     });
   }), button("Race a new scramble", () => { const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff)); setCube(sc.cube); window.sessionStorage.setItem("cubelab-scramble", sc.alg); })]), output);
   return c;
@@ -241,12 +243,15 @@ function buildBench() {
   fetch("/bench-out/results.json").then((r) => r.json()).then((data) => { const aggs = data.aggregates as Array<{solver:string;depth:string;count:number;successRate:number;avgLength:number;avgTimeMs:number;avgNodes:number}>; table.replaceChildren(...aggs.slice(0, 18).map((a) => h("div", { class: "bench-row" }, [`${a.solver} · ${a.depth}: ${(a.successRate * a.count).toFixed(0)}/${a.count} solved · ${a.avgLength.toFixed(2)} moves · ${a.avgTimeMs.toFixed(2)} ms · ${a.avgNodes.toFixed(0)} nodes`]))); }).catch(() => { table.textContent = "Benchmark JSON could not be loaded. See docs/BENCHMARK_ANALYSIS.md."; });
   return c;
 }
+function buildScannerView() {
+  return buildScanner((next) => { if (next) { startCube = next; setCube(next); activeTab = "solve"; render(); toast("Valid scanned cube loaded"); } });
+}
 function render() {
   activeJob?.cancel(); activeJob = undefined;
   currentView?.dispose();
   tabs.querySelectorAll("[role=tab]").forEach((t, i) => t.setAttribute("aria-selected", tabNames[i]![0] === activeTab ? "true" : "false"));
   content.replaceChildren();
-  const views: Record<string, () => HTMLElement> = { solve: buildSolveView, race: buildRace, explorer: buildExplorer, lab: buildLab, doctor: buildDoctor, learn: buildLearn, bench: buildBench };
+  const views: Record<string, () => HTMLElement> = { solve: buildSolveView, race: buildRace, explorer: buildExplorer, lab: buildLab, doctor: buildDoctor, learn: buildLearn, scanner: buildScannerView, bench: buildBench };
   content.append(views[activeTab]!());
 }
 window.addEventListener("keydown", (e) => {
