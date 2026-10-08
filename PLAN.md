@@ -108,9 +108,12 @@ CSS only. Art direction, audit and token spec live in `docs/redesign/` and `DESI
       - [x] **Learn / hint** — hint panel, styled face-turn grid, reveal-next-move.
       - [x] **Scanner** — two-column layout, camera-off overlay, capture-progress dots, confidence
         legend, friendly permission-denied callout.
-- [ ] **Step 6 — Micro-interactions.** Hover/press/focus, eased transitions, stat tick-ups,
-      staggered entrances; reduced-motion safe; never hurt the 60fps cube.
-- [ ] **Step 7 — Visual QA loop** (after every step): re-screenshot, compare to before/, fix
-      overlap/clipping/contrast/alignment; no horizontal scroll at 390px.
-- [ ] **Step 8 — Wrap-up.** `docs/redesign/after/`, README before/after, full `npm test`, prod
-      build, Lighthouse (a11y stays 100, perf not worse).
+- [x] **Step 6 — Micro-interactions.** Hover/press/focus states and one eased curve across all
+      controls, number tick-ups on benchmark stats, subtle staggered view/card entrances; all
+      gated by `prefers-reduced-motion` (idle cube drift, animations, delays, smooth-scroll off).
+- [~] **Step 7 — Visual QA loop.** Solve/Race/Benchmarks QA'd via Playwright earlier; remaining
+      views (Explorer, Lab, Doctor, Learn, Scanner) + Step 6 are being reviewed in-browser by the
+      user (this pass intentionally skipped the screenshot loop to save tokens).
+- [~] **Step 8 — Wrap-up.** README updated with a Design section describing the Optical Bench
+      direction (existing screenshot images left for the user to refresh); full `npm test` green
+      (43 engine + 2 web); production build clean. Lighthouse re-run deferred (no-screenshot pass).

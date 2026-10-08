@@ -50,7 +50,19 @@ node dist/bench/cli.js --solvers all --scrambles 30 --depths 5,8,11,15,20,random
 - **Explain / Learn:** inspect labeled solver stages and reveal solution moves one at a time.
 - **Camera scanner:** calibrate sticker colors from face centers, view confidence per sticker, upload an image, and correct stickers manually. Browser camera permission is optional.
 - **Benchmark dashboard:** view the bundled JSON results or load another benchmark JSON file.
-- Dark and light themes, a colorblind-safe cube palette, reduced-motion behavior, responsive layout, keyboard support, and ARIA labels.
+- Dark and light themes, a colorblind-safe cube palette, reduced-motion behavior, responsive layout, keyboard support, and ARIA labels — now with consistent per-view page headers and designed empty, loading, and error states throughout.
+
+## Design
+
+CubeLab's interface is built as a precision instrument rather than a generic dashboard — an "Optical Bench" direction documented in [DESIGN.md](DESIGN.md) (the candidates it was chosen from, and why, are in [docs/redesign/DIRECTIONS.md](docs/redesign/DIRECTIONS.md); the pre-redesign audit is in [docs/redesign/AUDIT.md](docs/redesign/AUDIT.md)).
+
+- **One accent, cube-first color.** Cool graphite neutrals and a single phosphor-cyan accent (`#46d6c4` dark, `#0e9e8c` light) used only for focus, active state, live traces, and meters — so the six saturated cube sticker colors stay the most vivid marks on screen in every theme, including the colorblind-safe palette.
+- **An instrument motif.** A faint engineering-grid substrate sits behind the app, hairline rails with corner ticks frame each view's page header, and the 3D cube is lit like a specimen on a stage: three-point lighting with ACES tone mapping, a soft contact shadow, rounded cubies, and a gentle idle drift that stops under reduced motion.
+- **Deliberate type.** Space Grotesk for UI and headings, JetBrains Mono for move notation, telemetry, and every table figure, with tabular numbers throughout. Both fonts are self-hosted woff2 subsets, so there are no external font requests.
+- **Finished states everywhere.** Every view has a designed empty state plus loading/indeterminate and inline error states. The Search Explorer and Benchmarks charts use clean axes, soft gridlines, tooltips, and a stable per-solver color map; the Solver Race gives each solver a colored identity, an animated bar, rank badges, and a clear winner moment.
+- **Preserved behavior.** Dark/light themes, the colorblind cube palette, `prefers-reduced-motion`, ARIA roles/labels and visible focus rings, the keyboard shortcuts (`U D L R F B`, `Shift`, arrow keys, and `?` for the shortcut panel), the share-link hash format, Web Worker solving, and the IndexedDB table cache are all unchanged.
+
+Full tokens (color, type, 4px spacing, radius, elevation, motion, and z-index scales) and per-component rules live in [DESIGN.md](DESIGN.md).
 
 ## Benchmark snapshot
 
