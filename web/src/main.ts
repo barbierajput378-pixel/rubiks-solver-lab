@@ -480,10 +480,60 @@ function buildExplorer() {
 }
 function buildLab() {
   const c = h("section", { class: "card" });
-  const out = h("div", { class: "stack" });
-  const corners = h("input", { type: "checkbox", checked: true }) as HTMLInputElement;
-  const edges = h("input", { type: "checkbox", checked: true }) as HTMLInputElement;
-  c.append(h("div", { class: "row" }, [h("label", {}, [corners, " Corner pattern database"]), h("label", {}, [edges, " Edge orientation table"])]), h("p", { class: "subtle" }, ["Toggle either admissible pattern database and compare against the other selection. Each run uses the same cube and an 8-move optimal-search cap."]), h("div", { class: "row" }, [button("Compare heuristic", () => { out.replaceChildren(); for (const [name, heuristic] of [["Selected tables", { corners: corners.checked, edgeOrientation: edges.checked }], ["Both tables", { corners: true, edgeOrientation: true }]] as const) { const row = h("div", { class: "stat" }, [h("div", { class: "k" }, [name]), h("div", { class: "v" }, ["Building / searching…"])]); out.append(row); runSolve("ida-pdb", cube, { timeoutMs: 30000, maxDepth: 8, heuristic }, {}).promise.then((r) => { row.querySelector(".v")!.textContent = `${r.stats.nodesExpanded.toLocaleString()} nodes · ${r.stats.timeMs.toFixed(1)} ms${r.solved ? ` · ${r.stats.solutionLength} moves` : r.timedOut ? " · capped" : ""}`; }).catch((e) => { row.querySelector(".v")!.textContent = e.message; }); } })]), out);
+  const corners = h("input", { type: "checkbox", checked: true, "aria-label": "Corner pattern database" }) as HTMLInputElement;
+  const edges = h("input", { type: "checkbox", checked: true, "aria-label": "Edge orientation table" }) as HTMLInputElement;
+  const options = h("div", { class: "race-options" }, [
+    h("label", { class: "competitor", style: "--row-accent: var(--accent)" }, [corners, h("span", { class: "competitor-name" }, ["Corner pattern database"])]),
+    h("label", { class: "competitor", style: "--row-accent: var(--solver-thistlethwaite)" }, [edges, h("span", { class: "competitor-name" }, ["Edge orientation table"])]),
+  ]);
+  const describe = (cfg: { corners: boolean; edgeOrientation: boolean }) => [cfg.corners ? "corners" : "", cfg.edgeOrientation ? "EO" : ""].filter(Boolean).join(" + ") || "none";
+
+  const results = h("div", { class: "lab-results" });
+  const empty = emptyState(ICONS.flask, "Compare heuristics", "Toggle the admissible tables, then compare search cost against the full configuration on the same cube (8-move cap).");
+  const body = h("div", { class: "lab-body" }, [empty]);
+
+  const runCompare = () => {
+    const configs = [
+      { name: "Selected tables", heuristic: { corners: corners.checked, edgeOrientation: edges.checked } },
+      { name: "Both tables", heuristic: { corners: true, edgeOrientation: true } },
+    ];
+    const rows = configs.map((cfg) => {
+      const vNodes = h("div", { class: "lab-nodes" }, ["searching…"]);
+      const vMeta = h("div", { class: "lab-meta subtle" }, [" "]);
+      const bar = h("div", { class: "meter indeterminate" }, [h("span")]);
+      const card = h("div", { class: "lab-result" }, [
+        h("div", { class: "lab-result-head" }, [h("strong", {}, [cfg.name]), h("span", { class: "badge" }, [describe(cfg.heuristic)])]),
+        vNodes, vMeta, bar,
+      ]);
+      return { cfg, card, vNodes, vMeta, bar, nodes: undefined as number | undefined };
+    });
+    results.replaceChildren(...rows.map((r) => r.card));
+    body.replaceChildren(results);
+    const renderBars = () => {
+      const vals = rows.filter((r) => r.nodes !== undefined).map((r) => r.nodes!);
+      if (!vals.length) return;
+      const max = Math.max(1, ...vals);
+      for (const r of rows) if (r.nodes !== undefined) (r.bar.firstElementChild as HTMLElement).style.width = `${Math.max(3, (r.nodes / max) * 100)}%`;
+    };
+    for (const r of rows) {
+      runSolve("ida-pdb", cube, { timeoutMs: 30000, maxDepth: 8, heuristic: r.cfg.heuristic }, {}).promise
+        .then((res) => {
+          r.nodes = res.stats.nodesExpanded;
+          r.bar.classList.remove("indeterminate");
+          r.vNodes.textContent = `${res.stats.nodesExpanded.toLocaleString()} nodes`;
+          r.vMeta.textContent = `${res.stats.timeMs.toFixed(1)} ms${res.solved ? ` · ${res.stats.solutionLength} moves` : res.timedOut ? " · capped" : ""}`;
+          renderBars();
+        })
+        .catch((e) => { r.bar.classList.remove("indeterminate"); r.vNodes.textContent = "error"; r.vMeta.textContent = (e as Error).message; });
+    }
+  };
+
+  c.append(
+    h("p", { class: "eyebrow" }, ["ADMISSIBLE TABLES"]),
+    options,
+    h("div", { class: "row lab-controls" }, [labelIconBtn(ICONS.flask, "Compare heuristics", runCompare, true)]),
+    body,
+  );
   return c;
 }
 function buildDoctor() {

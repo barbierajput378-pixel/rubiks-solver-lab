@@ -928,6 +928,45 @@ label.field {
   flex: none;
 }
 
+/* ---- heuristic lab ---- */
+.lab-controls {
+  margin: var(--space-md) 0 var(--space-lg);
+}
+.lab-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-md);
+}
+.lab-result {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--inset-hi);
+}
+.lab-result-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.lab-result-head strong {
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+.lab-nodes {
+  font: 600 var(--fs-stat) / 1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+.lab-meta {
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+}
+
 /* ---- charts (shared) ---- */
 .explorer-chart {
   min-height: 170px;
