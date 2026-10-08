@@ -1,0 +1,27 @@
+{
+  "name": "@cubelab/engine",
+  "version": "0.1.0",
+  "description": "CubeLab core engine: cube model, solvers, pattern databases, benchmark CLI (TypeScript; architected for a C++17/WASM port).",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./src/*": "./src/*"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "bench": "tsx src/bench/cli.ts"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.8"
+  }
+}

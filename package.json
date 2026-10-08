@@ -1,0 +1,21 @@
+{
+  "name": "cubelab",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Interactive Rubik's Cube solver and algorithm laboratory",
+  "license": "MIT",
+  "workspaces": [
+    "engine",
+    "web"
+  ],
+  "scripts": {
+    "test": "npm run test --workspace @cubelab/engine",
+    "build:engine": "npm run build --workspace @cubelab/engine",
+    "bench": "npm run bench --workspace @cubelab/engine",
+    "dev": "npm run dev --workspace @cubelab/web",
+    "build:web": "npm run build --workspace @cubelab/web"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}

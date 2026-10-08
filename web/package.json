@@ -1,0 +1,11 @@
+{
+  "name": "@cubelab/web",
+  "version": "0.1.0",
+  "description": "CubeLab web app (Vite + TypeScript + three.js). Built in Phase 4.",
+  "license": "MIT",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "echo \"web app is scaffolded in Phase 4\" && exit 0"
+  }
+}

@@ -1,0 +1,24 @@
+# deps
+node_modules/
+# builds
+dist/
+build/
+*.tsbuildinfo
+# engine artifacts
+engine/dist/
+engine/.cache/
+*.pdb.bin
+# web
+web/dist/
+web/.vite/
+# bench outputs (keep docs/benchmarks committed plots, ignore raw scratch)
+bench-out/
+# os / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/extensions.json
+# logs
+*.log
+npm-debug.log*
