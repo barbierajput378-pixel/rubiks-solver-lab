@@ -9,7 +9,7 @@ import { runSolve } from "./engine/solverClient";
 import type { RunningSolve } from "./engine/solverClient";
 import { buildScanner } from "./scanner/scanner";
 import benchmarkData from "../../bench-out/results.json";
-import { h, toast } from "./ui/dom";
+import { h, toast, icon, ICONS } from "./ui/dom";
 
 const root = document.querySelector<HTMLElement>("#app")!;
 const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -52,14 +52,51 @@ const updateHash = () => {
 const shell = h("div", { class: "app-shell" });
 root.append(shell);
 const header = h("header", { class: "topbar" });
-header.append(h("div", { class: "brand", "aria-label": "CubeLab home" }, [h("span", { class: "logo", "aria-hidden": "true" }, ["◈"]), h("span", {}, ["CubeLab", h("small", {}, ["  /  algorithm lab"])])]));
-header.append(h("div", { class: "spacer" }));
-const themeButton = h("button", { class: "btn ghost", type: "button", "aria-label": "Toggle light and dark theme" }, ["◐ Theme"]);
-themeButton.onclick = () => { const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = theme; localStorage.setItem("cubelab-theme", theme); currentView?.readThemeColors(); };
-header.append(themeButton);
-const cbButton = h("button", { class: "btn ghost", type: "button", "aria-label": "Palette" }, ["◉ Palette"]);
-cbButton.onclick = () => { const cb = document.documentElement.dataset.cb === "on" ? "off" : "on"; document.documentElement.dataset.cb = cb; localStorage.setItem("cubelab-cb", cb); currentView?.readThemeColors(); };
-header.append(cbButton);
+const brand = h("a", { class: "brand", href: "?view=solve", "aria-label": "CubeLab home" }, [
+  h("span", { class: "logo", "aria-hidden": "true" }, [icon(ICONS.grid, 20)]),
+  h("span", { class: "wordmark" }, ["CubeLab", h("small", {}, ["Algorithm Lab"])]),
+]);
+brand.onclick = (e) => { e.preventDefault(); activeTab = "solve"; render(); };
+header.append(brand, h("div", { class: "spacer" }));
+
+const labelBtn = (ico: string, label: string, aria: string) =>
+  h("button", { class: "btn ghost", type: "button", "aria-label": aria }, [icon(ico), h("span", { class: "label-text" }, [label])]);
+
+// keyboard-shortcut hint + popover
+const shortcutsPanel = h("div", { class: "shortcuts hidden", role: "dialog", "aria-label": "Keyboard shortcuts" }, [
+  h("h3", {}, ["Keyboard shortcuts"]),
+  h("dl", {}, [
+    h("dt", {}, [h("kbd", {}, ["U"]), h("kbd", {}, ["D"]), h("kbd", {}, ["L"]), h("kbd", {}, ["R"]), h("kbd", {}, ["F"]), h("kbd", {}, ["B"])]), h("dd", {}, ["Turn a face clockwise"]),
+    h("dt", {}, [h("kbd", {}, ["Shift"]), h("span", { class: "plus" }, ["+"]), h("kbd", {}, ["face"])]), h("dd", {}, ["Turn counter-clockwise"]),
+    h("dt", {}, [h("kbd", {}, ["←"]), h("kbd", {}, ["→"])]), h("dd", {}, ["Step through the solution"]),
+    h("dt", {}, [h("kbd", {}, ["?"])]), h("dd", {}, ["Toggle this panel"]),
+  ]),
+]);
+const helpButton = h("button", { class: "btn ghost icon", type: "button", "aria-label": "Keyboard shortcuts", "aria-expanded": "false" }, [icon(ICONS.keyboard)]);
+const toggleShortcuts = (force?: boolean) => {
+  const show = force ?? shortcutsPanel.classList.contains("hidden");
+  shortcutsPanel.classList.toggle("hidden", !show);
+  helpButton.setAttribute("aria-expanded", String(show));
+};
+helpButton.onclick = () => toggleShortcuts();
+
+const themeIcon = () => (document.documentElement.dataset.theme === "dark" ? ICONS.moon : ICONS.sun);
+const themeButton = labelBtn(themeIcon(), "Theme", "Toggle light and dark theme");
+themeButton.onclick = () => {
+  const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark";
+  document.documentElement.dataset.theme = theme; localStorage.setItem("cubelab-theme", theme);
+  themeButton.replaceChildren(icon(themeIcon()), h("span", { class: "label-text" }, ["Theme"]));
+  currentView?.readThemeColors();
+};
+const cbButton = labelBtn(ICONS.palette, "Palette", "Toggle colorblind-safe cube palette");
+cbButton.setAttribute("aria-pressed", String(document.documentElement.dataset.cb === "on"));
+cbButton.onclick = () => {
+  const cb = document.documentElement.dataset.cb === "on" ? "off" : "on";
+  document.documentElement.dataset.cb = cb; localStorage.setItem("cubelab-cb", cb);
+  cbButton.setAttribute("aria-pressed", String(cb === "on"));
+  currentView?.readThemeColors();
+};
+header.append(helpButton, themeButton, cbButton, shortcutsPanel);
 shell.append(header);
 
 const tabs = h("nav", { class: "tabs", role: "tablist", "aria-label": "CubeLab sections" });
@@ -82,6 +119,29 @@ function card(title: string, subtitle?: string) {
   c.append(h("h2", {}, [title]));
   if (subtitle) c.append(h("p", { class: "subtle" }, [subtitle]));
   return c;
+}
+// Per-view identity for the consistent page header (eyebrow index + title + lead).
+const VIEW_META: Record<string, { idx: string; title: string; lead: string }> = {
+  solve: { idx: "01", title: "Solve", lead: "Scramble or paint a cube, pick a solver, then inspect the returned algorithm move by move." },
+  race: { idx: "02", title: "Solver race", lead: "Run 2–4 solvers at once in isolated workers and watch the search unfold. First correct completion wins." },
+  explorer: { idx: "03", title: "Search explorer", lead: "Stream IDA* thresholds and heuristic telemetry live from the optimal-search worker." },
+  lab: { idx: "04", title: "Heuristic lab", lead: "Toggle admissible pattern databases and compare their effect on search cost for one scramble." },
+  doctor: { idx: "05", title: "Validity doctor", lead: "Check painted stickers against color counts, piece inventory, orientation and parity — with repairs." },
+  learn: { idx: "06", title: "Learn / hint", lead: "Reveal the solution one move at a time, with an explanation from each named solver stage." },
+  scanner: { idx: "07", title: "Camera scanner", lead: "Capture each face with your camera or a photo; centers self-calibrate color under your lighting." },
+  bench: { idx: "08", title: "Benchmarks", lead: "Measured solver performance across scramble depths. Values are machine-dependent." },
+};
+function pageHeader(id: string, actions?: HTMLElement) {
+  const m = VIEW_META[id]!;
+  const head = h("div", { class: "page-head" });
+  const main = h("div", { class: "head-main" }, [
+    h("p", { class: "eyebrow" }, [h("span", { class: "idx" }, [m.idx]), " · ", m.title.toUpperCase()]),
+    h("h1", {}, [m.title]),
+    h("p", { class: "lead" }, [m.lead]),
+  ]);
+  head.append(main);
+  if (actions) head.append(h("div", { class: "head-actions" }, [actions]));
+  return head;
 }
 function commitTurn(face: Face, power: 1 | 2 | 3) {
   if (currentView?.isAnimating) return;
@@ -200,7 +260,7 @@ function buildSolveView() {
 let playTimer: number | undefined;
 
 function buildRace() {
-  const c = card("Solver race", "Run several implementations at once in isolated workers. First correct completion wins.");
+  const c = h("section", { class: "card" });
   const checks = h("div", { class: "race-options" });
   const defaults = ["kociemba", "thistlethwaite", "beginner", "ida-pdb"];
   for (const s of SOLVER_OPTIONS.filter((x) => !x.id.includes("2x2"))) checks.append(h("label", {}, [h("input", { type: "checkbox", value: s.id, checked: defaults.includes(s.id) }), ` ${s.name}`]));
@@ -226,7 +286,7 @@ function buildRace() {
   return c;
 }
 function buildExplorer() {
-  const c = card("Search explorer", "Stream IDA* thresholds and heuristic telemetry from the optimal-search worker.");
+  const c = h("section", { class: "card" });
   const chart = h("div", { class: "explorer-chart", id: "explorer-chart", "aria-label": "Search depth and heuristic samples" });
   const tree = h("div", { class: "tree-samples", id: "tree-samples" });
   const summary = h("p", { id: "explorer-status", role: "status", class: "subtle" }, ["Ready to inspect a search."]);
@@ -237,7 +297,7 @@ function buildExplorer() {
   return c;
 }
 function buildLab() {
-  const c = card("Heuristic lab", "Compare search cost for one scramble with the available optimal-search heuristic configuration.");
+  const c = h("section", { class: "card" });
   const out = h("div", { class: "stack" });
   const corners = h("input", { type: "checkbox", checked: true }) as HTMLInputElement;
   const edges = h("input", { type: "checkbox", checked: true }) as HTMLInputElement;
@@ -245,7 +305,7 @@ function buildLab() {
   return c;
 }
 function buildDoctor() {
-  const c = card("Smart validity doctor", "Painted stickers are checked against color counts, piece inventory, orientation and parity.");
+  const c = h("section", { class: "card" });
   const feedback = h("p", { class: "subtle" }, ["Checking current painted stickers…"]);
   const fixes = h("ul", {});
   const validate = () => {
@@ -272,7 +332,7 @@ function buildDoctor() {
   return c;
 }
 function buildLearn() {
-  const c = card("Learn / hint mode", "Reveal one move at a time, with an explanation from the solver's named stages when available.");
+  const c = h("section", { class: "card" });
   const info = h("p", { class: "subtle", id: "learn-hint" }, ["Solve first, then request the next hint."]);
   learnHint = info;
   const faces = h("div", { class: "row", "aria-label": "Try a face turn" });
@@ -283,7 +343,7 @@ function buildLearn() {
   return c;
 }
 function buildBench() {
-  const c = card("Benchmark dashboard", "Measurements from the committed Phase 3 run. Values are machine-dependent.");
+  const c = h("section", { class: "card" });
   type Aggregate = { solver: string; depth: string; count: number; successRate: number; avgLength: number; avgTimeMs: number; avgNodes: number };
   const table = h("div", { class: "bench-placeholder" });
   const input = h("input", { type: "file", accept: "application/json,.json", "aria-label": "Load benchmark JSON" }) as HTMLInputElement;
@@ -310,13 +370,20 @@ function render() {
     content.append(welcome);
   }
   const views: Record<string, () => HTMLElement> = { solve: buildSolveView, race: buildRace, explorer: buildExplorer, lab: buildLab, doctor: buildDoctor, learn: buildLearn, scanner: buildScannerView, bench: buildBench };
-  content.append(views[activeTab]!());
+  const viewEl = h("div", { class: "view rise" }, [pageHeader(activeTab), views[activeTab]!()]);
+  content.append(viewEl);
 }
 window.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { toggleShortcuts(false); return; }
   if (e.altKey || e.ctrlKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test((e.target as HTMLElement).tagName)) return;
+  if (e.key === "?") { toggleShortcuts(); return; }
   if ("UDLRFB".includes(e.key.toUpperCase()) && e.key.length === 1) { const f = FACE_NAMES.indexOf(e.key.toUpperCase() as typeof FACE_NAMES[number]); if (f >= 0) commitTurn(f as Face, e.shiftKey ? 3 : 1); }
   if (e.key === "ArrowLeft" && solution.length) seek(cursor - 1);
   if (e.key === "ArrowRight" && solution.length) seek(cursor + 1);
+});
+document.addEventListener("click", (e) => {
+  if (shortcutsPanel.classList.contains("hidden")) return;
+  if (!shortcutsPanel.contains(e.target as Node) && !helpButton.contains(e.target as Node)) toggleShortcuts(false);
 });
 
 const params = new URLSearchParams(location.hash.slice(1));

@@ -1,12 +1,70 @@
-/* CubeLab design tokens — dark-first, Linear/Raycast-inspired. See docs/RESEARCH.md. */
+/* CubeLab design tokens — "Optical Bench" direction.
+   Single source of truth: /DESIGN.md. Dark-first, cool graphite + one phosphor-cyan accent;
+   the six cube sticker colors stay the most saturated marks on screen. */
+
+/* ---- Self-hosted fonts (latin subset woff2 in /public/fonts) ---- */
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/space-grotesk-400.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/space-grotesk-500.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/space-grotesk-600.woff2") format("woff2"); }
+@font-face { font-family: "Space Grotesk"; font-style: normal; font-weight: 700; font-display: swap; src: url("/fonts/space-grotesk-700.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 400; font-display: swap; src: url("/fonts/jetbrains-mono-400.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 500; font-display: swap; src: url("/fonts/jetbrains-mono-500.woff2") format("woff2"); }
+@font-face { font-family: "JetBrains Mono"; font-style: normal; font-weight: 600; font-display: swap; src: url("/fonts/jetbrains-mono-600.woff2") format("woff2"); }
 
 :root {
-  /* Accent */
-  --accent: #6ea8fe;
-  --accent-strong: #4d8bfd;
-  --accent-contrast: #0b1020;
+  /* Type */
+  --font: "Space Grotesk", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
 
-  /* Cube face colors (default scheme) */
+  --fs-display: clamp(26px, 3.2vw, 34px);
+  --fs-h1: 21px;
+  --fs-h2: 15px;
+  --fs-body: 13.5px;
+  --fs-sm: 12.5px;
+  --fs-micro: 11px;
+  --fs-stat: 22px;
+  --fs-stat-lg: 30px;
+
+  /* Spacing (4px base) */
+  --space-2: 2px;
+  --space-xs: 4px;
+  --space-sm: 8px;
+  --space-md: 12px;
+  --space-lg: 16px;
+  --space-xl: 24px;
+  --space-2xl: 32px;
+  --space-3xl: 48px;
+  --space-4xl: 64px;
+  --gap: var(--space-lg);
+
+  /* Radius (concentric) */
+  --r-xs: 6px;
+  --r-sm: 9px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 22px;
+  --r-pill: 999px;
+  --radius: var(--r-lg);
+  --radius-sm: var(--r-sm);
+
+  /* Motion */
+  --ease: cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-1: 120ms;
+  --dur-2: 200ms;
+  --dur-3: 320ms;
+  --dur-entrance: 560ms;
+  --transition: var(--dur-2) var(--ease);
+
+  /* z-index scale */
+  --z-base: 0;
+  --z-rail: 1;
+  --z-sticky: 50;
+  --z-dropdown: 100;
+  --z-tooltip: 200;
+  --z-toast: 300;
+  --z-modal: 400;
+
+  /* Cube face colors (default scheme) — the vivid anchors */
   --cube-U: #f8f8f8;
   --cube-R: #c8102e;
   --cube-F: #009b48;
@@ -14,56 +72,97 @@
   --cube-L: #ff5800;
   --cube-B: #0046ad;
 
-  /* semantic */
-  --ok: #51cf66;
-  --warn: #ffd43b;
-  --bad: #ff6b6b;
-
-  --radius: 14px;
-  --radius-sm: 9px;
-  --gap: 16px;
-  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
-  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Chart series (stable solver color map; lower-sat than stickers, no purple) */
+  --solver-kociemba: #46d6c4;
+  --solver-thistlethwaite: #e8b04b;
+  --solver-beginner: #8bd450;
+  --solver-ida-pdb: #6ea8fe;
+  --solver-bfs-2x2: #ff8f6b;
+  --solver-bibfs-2x2: #e06c9f;
 }
 
-/* Dark theme (default) */
+/* ---- Dark theme (default) ---- */
 :root,
 :root[data-theme="dark"] {
-  --bg: #0a0c10;
-  --bg-elev-1: #0f1218;
-  --bg-elev-2: #151a22;
-  --bg-elev-3: #1b212b;
-  --surface-glass: rgba(21, 26, 34, 0.72);
-  --text: #e6edf3;
-  --text-dim: #9aa7b4;
-  --text-faint: #65717d;
-  --border: rgba(255, 255, 255, 0.08);
-  --border-strong: rgba(255, 255, 255, 0.14);
-  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.36);
-  --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.5), 0 16px 48px rgba(0, 0, 0, 0.5);
-  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --accent: #46d6c4;
+  --accent-strong: #2bbfad;
+  --accent-soft: rgba(70, 214, 196, 0.14);
+  --accent-contrast: #042420;
+
+  --bg: #090b0f;
+  --bg-elev-1: #0e1218;
+  --bg-elev-2: #141921;
+  --bg-elev-3: #1a212b;
+  --surface-glass: rgba(15, 19, 26, 0.72);
+  --surface-glass-strong: rgba(13, 17, 23, 0.9);
+
+  --text: #e8edf2;
+  --text-dim: #9aa6b2;
+  --text-faint: #636f7b;
+
+  --border: rgba(255, 255, 255, 0.07);
+  --border-strong: rgba(255, 255, 255, 0.13);
+  --grid-line: rgba(255, 255, 255, 0.035);
+  --grid-line-major: rgba(255, 255, 255, 0.06);
+
+  --ok: #3ddc84;
+  --warn: #ffcf4a;
+  --bad: #ff6b6b;
+  --ok-soft: rgba(61, 220, 132, 0.14);
+  --warn-soft: rgba(255, 207, 74, 0.14);
+  --bad-soft: rgba(255, 107, 107, 0.14);
+
+  --e1: 0 1px 2px rgba(3, 6, 10, 0.55);
+  --e2: 0 1px 2px rgba(3, 6, 10, 0.45), 0 10px 28px rgba(3, 6, 10, 0.42);
+  --e3: 0 2px 6px rgba(3, 6, 10, 0.5), 0 22px 54px rgba(3, 6, 10, 0.55);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent),
+    0 0 22px -6px color-mix(in srgb, var(--accent) 60%, transparent);
+
+  /* legacy aliases kept so existing rules resolve */
+  --shadow: var(--e2);
+  --shadow-lg: var(--e3);
 }
 
-/* Light theme */
+/* ---- Light theme ---- */
 :root[data-theme="light"] {
-  --bg: #f6f8fb;
+  --accent: #0e9e8c;
+  --accent-strong: #0b7d70;
+  --accent-soft: rgba(14, 158, 140, 0.12);
+  --accent-contrast: #ffffff;
+
+  --bg: #f3f6f9;
   --bg-elev-1: #ffffff;
   --bg-elev-2: #ffffff;
-  --bg-elev-3: #f0f3f8;
-  --surface-glass: rgba(255, 255, 255, 0.78);
-  --text: #0e1116;
-  --text-dim: #51606e;
-  --text-faint: #8a97a4;
-  --border: rgba(10, 15, 25, 0.1);
-  --border-strong: rgba(10, 15, 25, 0.18);
-  --shadow: 0 1px 2px rgba(10, 20, 40, 0.06), 0 8px 24px rgba(10, 20, 40, 0.1);
-  --shadow-lg: 0 2px 4px rgba(10, 20, 40, 0.08), 0 16px 48px rgba(10, 20, 40, 0.14);
-  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  --accent-contrast: #ffffff;
+  --bg-elev-3: #eceff4;
+  --surface-glass: rgba(255, 255, 255, 0.82);
+  --surface-glass-strong: rgba(255, 255, 255, 0.93);
+
+  --text: #0d1117;
+  --text-dim: #495561;
+  --text-faint: #808d99;
+
+  --border: rgba(12, 22, 38, 0.1);
+  --border-strong: rgba(12, 22, 38, 0.17);
+  --grid-line: rgba(12, 30, 50, 0.045);
+  --grid-line-major: rgba(12, 30, 50, 0.07);
+
+  --ok: #0f9d58;
+  --warn: #b07d0a;
+  --bad: #d33a3a;
+  --ok-soft: rgba(15, 157, 88, 0.12);
+  --warn-soft: rgba(176, 125, 10, 0.14);
+  --bad-soft: rgba(211, 58, 58, 0.12);
+
+  --e1: 0 1px 2px rgba(16, 32, 56, 0.08);
+  --e2: 0 1px 2px rgba(16, 32, 56, 0.08), 0 10px 28px rgba(16, 32, 56, 0.1);
+  --e3: 0 2px 6px rgba(16, 32, 56, 0.1), 0 22px 54px rgba(16, 32, 56, 0.16);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.7);
+  --glow-accent: 0 0 0 1px color-mix(in srgb, var(--accent) 50%, transparent),
+    0 0 22px -8px color-mix(in srgb, var(--accent) 55%, transparent);
 }
 
-/* Colorblind-safe cube palette (Okabe-Ito-derived, distinct in luminance+hue) */
+/* Colorblind-safe cube palette (Okabe–Ito; only the six cube tokens change) */
 :root[data-cb="on"] {
   --cube-U: #ffffff;
   --cube-R: #d55e00; /* vermilion */

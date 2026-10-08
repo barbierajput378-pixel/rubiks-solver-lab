@@ -88,8 +88,11 @@ CSS only. Art direction, audit and token spec live in `docs/redesign/` and `DESI
 - [ ] **Step 2 — Direction + DESIGN.md.** `docs/redesign/DIRECTIONS.md` (3 candidates, pick one);
       `DESIGN.md` single source of truth (palette, type, spacing, radius, elevation, motion,
       z-index, component rules).
-- [ ] **Step 3 — Tokens + shell.** Rebuild `web/src/styles` tokens + shared styles; refine nav,
-      page headers, keyboard-hint, theme/palette toggles.
+- [x] **Step 3 — Tokens + shell.** Rebuilt `web/src/styles` tokens (Optical Bench: fonts, color,
+      spacing, radius, elevation, motion, z-index) + shared styles; self-hosted Space Grotesk +
+      JetBrains Mono; new top bar (brand mark, styled theme/palette toggles, keyboard-shortcut
+      popover, `?`), segmented nav, consistent per-view page headers with instrument rails. Fixed
+      the always-full progress-meter bug.
 - [ ] **Step 4 — Solve view.** Cube as hero (key/rim/ambient light, ground shadow, glow, idle
       drift that stops under reduced-motion); floating glass control panels; polished playback
       bar + move chips; mobile bottom-sheet.
