@@ -1,6 +1,26 @@
 # CubeLab
 
+[![CI](https://github.com/barbierajput378-pixel/rubiks-solver-lab/actions/workflows/ci.yml/badge.svg)](https://github.com/barbierajput378-pixel/rubiks-solver-lab/actions/workflows/ci.yml)
+![TypeScript](https://img.shields.io/badge/TypeScript-strict-3178C6?logo=typescript&logoColor=white)
+![three.js](https://img.shields.io/badge/three.js-WebGL-000000?logo=three.js&logoColor=white)
+![License](https://img.shields.io/badge/license-MIT-blue)
+
+**▶ Live demo: https://rubiks-solver-lab-web.vercel.app**
+
 CubeLab is an interactive Rubik’s Cube solver and algorithm lab. It puts several search strategies behind one TypeScript solver interface, then lets you inspect their solutions, search telemetry, and limits in the browser. The engine and app run locally; there is no solve API or server requirement.
+
+**What it shows off:** six solvers behind one interface (layer-by-layer, **Kociemba two-phase**, **Thistlethwaite**, **optimal IDA\*** with pattern-database heuristics, and 2×2 bidirectional BFS), a Web-Worker solve pipeline, a three.js cube, live search telemetry, and a reproducible benchmark harness that generates the plots below.
+
+### Benchmarks at a glance
+
+Over 30 fully-scrambled (20-move) cubes, seed 42 — numbers from the committed run:
+
+| Solver | Avg solution length | Avg time | Avg nodes expanded |
+|---|---|---|---|
+| **Kociemba** (two-phase) | **~23 moves** | ~0.39 s | ~46k |
+| Beginner (layer-by-layer) | ~46 moves | ~0.27 s | — |
+
+Kociemba finds solutions roughly **half as long** as the human-style method by searching a structured move space with pattern-database pruning. Full per-depth tables and plots are in [`docs/BENCHMARK_ANALYSIS.md`](docs/BENCHMARK_ANALYSIS.md).
 
 ## Screenshots
 
