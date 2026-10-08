@@ -98,12 +98,16 @@ CSS only. Art direction, audit and token spec live in `docs/redesign/` and `DESI
       (off under reduced-motion), aspect-correct renderer + capped stage. Floating STATE/READY HUD,
       polished playback bar (icon transport, scrubber, segmented speed), auto-scrolling move strip,
       icon action buttons, kbd-chip keyboard card, mobile bottom-sheet action bar.
-- [~] **Step 5 — Other views.** In progress.
-      - [x] **Race** — solver identities (color dots + colored animated bars), ranks, winner banner
-        + glow + toast, designed empty state, styled competitor toggles.
-      - [x] **Benchmarks** — stat tiles, metric-toggle grouped bar chart (axes, gridlines, consistent
-        solver colors, tooltips), semantic table with tabular figures, empty state.
-      - [ ] Explorer, Heuristic lab, Validity doctor, Learn, Scanner (+ empty/loading/error states).
+- [x] **Step 5 — Other views.** All redesigned with empty / loading / error states.
+      - [x] **Race** — solver identities (color dots + colored animated bars), ranks, winner banner.
+      - [x] **Benchmarks** — stat tiles, metric-toggle grouped bar chart, semantic table, empty state.
+      - [x] **Search Explorer** — live g/h/threshold/nodes readout tiles, legend, chart + frontier,
+        empty / building / error states.
+      - [x] **Heuristic Lab** — styled toggles, comparison cards with relative bars, loading + empty.
+      - [x] **Validity Doctor** — ok/bad status panel with icon, styled fix list, re-check action.
+      - [x] **Learn / hint** — hint panel, styled face-turn grid, reveal-next-move.
+      - [x] **Scanner** — two-column layout, camera-off overlay, capture-progress dots, confidence
+        legend, friendly permission-denied callout.
 - [ ] **Step 6 — Micro-interactions.** Hover/press/focus, eased transitions, stat tick-ups,
       staggered entrances; reduced-motion safe; never hurt the 60fps cube.
 - [ ] **Step 7 — Visual QA loop** (after every step): re-screenshot, compare to before/, fix

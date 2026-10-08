@@ -1758,6 +1758,22 @@ kbd {
 .rise {
   animation: rise-in var(--dur-entrance) var(--ease) both;
 }
+/* subtle staggered entrance for the active view */
+.view .page-head {
+  animation: rise-in var(--dur-entrance) var(--ease) both;
+}
+.view .card {
+  animation: rise-in var(--dur-entrance) var(--ease) 60ms both;
+}
+.stack > .card:nth-child(2) {
+  animation-delay: 120ms;
+}
+.stack > .card:nth-child(3) {
+  animation-delay: 180ms;
+}
+.stack > .card:nth-child(4) {
+  animation-delay: 240ms;
+}
 
 /* ---- responsive ---- */
 @media (max-width: 640px) {
@@ -1803,7 +1819,9 @@ kbd {
   *::before,
   *::after {
     animation-duration: 0.01ms !important;
+    animation-delay: 0ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

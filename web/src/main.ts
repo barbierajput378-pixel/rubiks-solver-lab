@@ -134,6 +134,18 @@ const VIEW_META: Record<string, { idx: string; title: string; lead: string }> = 
 function statTile(label: string, value: HTMLElement) {
   return h("div", { class: "stat" }, [h("div", { class: "k" }, [label]), value]);
 }
+// Animate a number counting up to `to`; instant under reduced motion.
+function tickUp(el: HTMLElement, to: number, format: (n: number) => string = (n) => Math.round(n).toLocaleString(), ms = 620) {
+  if (reducedMotion || to === 0) { el.textContent = format(to); return; }
+  const start = performance.now();
+  const step = (now: number) => {
+    const t = Math.min(1, (now - start) / ms);
+    const eased = 1 - Math.pow(1 - t, 3);
+    el.textContent = format(to * eased);
+    if (t < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
 function legendItem(color: string, label: string) {
   return h("span", { class: "legend-item" }, [h("span", { class: "dot", style: `--row-accent:${color}`, "aria-hidden": "true" }), label]);
 }
@@ -649,12 +661,15 @@ function buildBench() {
     const scrambles = aggs.reduce((n, a) => n + a.count, 0);
     const solved = aggs.filter((a) => a.successRate > 0);
     const fastest = solved.length ? solved.reduce((best, a) => (a.avgTimeMs < best.avgTimeMs ? a : best)) : undefined;
-    summary.replaceChildren(
-      h("div", { class: "stat" }, [h("div", { class: "k" }, ["Solvers"]), h("div", { class: "v" }, [String(solvers.length)])]),
-      h("div", { class: "stat" }, [h("div", { class: "k" }, ["Test groups"]), h("div", { class: "v" }, [String(aggs.length)])]),
-      h("div", { class: "stat" }, [h("div", { class: "k" }, ["Scrambles"]), h("div", { class: "v" }, [scrambles.toLocaleString()])]),
-      h("div", { class: "stat" }, [h("div", { class: "k" }, ["Fastest avg"]), h("div", { class: "v" }, [fastest ? `${fastest.avgTimeMs.toFixed(0)} ms` : "—"])]),
-    );
+    const vSolvers = h("div", { class: "v" }, ["0"]);
+    const vGroups = h("div", { class: "v" }, ["0"]);
+    const vScrambles = h("div", { class: "v" }, ["0"]);
+    const vFastest = h("div", { class: "v" }, ["—"]);
+    summary.replaceChildren(statTile("Solvers", vSolvers), statTile("Test groups", vGroups), statTile("Scrambles", vScrambles), statTile("Fastest avg", vFastest));
+    tickUp(vSolvers, solvers.length);
+    tickUp(vGroups, aggs.length);
+    tickUp(vScrambles, scrambles);
+    if (fastest) tickUp(vFastest, fastest.avgTimeMs, (n) => `${Math.round(n)} ms`);
     legend.replaceChildren(...solvers.map((s) => h("span", { class: "legend-item" }, [h("span", { class: "dot", style: `--row-accent:${solverVar(s)}`, "aria-hidden": "true" }), solverName(s)])));
     chartWrap.replaceChildren(benchChart(aggs, metricId));
     const cols: [string, string][] = [["Solver", ""], ["Depth", "num"], ["Solved", "num"], ["Avg moves", "num"], ["Avg time", "num"], ["Avg nodes", "num"]];
@@ -706,7 +721,7 @@ function render() {
     content.append(welcome);
   }
   const views: Record<string, () => HTMLElement> = { solve: buildSolveView, race: buildRace, explorer: buildExplorer, lab: buildLab, doctor: buildDoctor, learn: buildLearn, scanner: buildScannerView, bench: buildBench };
-  const viewEl = h("div", { class: "view rise" }, [pageHeader(activeTab), views[activeTab]!()]);
+  const viewEl = h("div", { class: "view" }, [pageHeader(activeTab), views[activeTab]!()]);
   content.append(viewEl);
 }
 window.addEventListener("keydown", (e) => {
