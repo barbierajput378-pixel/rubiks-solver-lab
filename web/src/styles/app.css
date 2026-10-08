@@ -821,20 +821,111 @@ label.field {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   gap: var(--space-sm);
-  padding: var(--space-md) 0;
+  margin: var(--space-md) 0;
+}
+.competitor {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--inset-hi);
+  cursor: pointer;
+  transition: border-color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.competitor:hover {
+  border-color: color-mix(in srgb, var(--text) 20%, transparent);
+}
+.competitor:has(input:checked) {
+  border-color: color-mix(in srgb, var(--row-accent) 55%, transparent);
+  background: color-mix(in srgb, var(--row-accent) 9%, var(--bg-elev-2));
+}
+.competitor input:checked {
+  background: var(--row-accent);
+}
+.competitor .dot,
+.race-row-head .dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--row-accent);
+  box-shadow: 0 0 8px -1px var(--row-accent);
+  flex: none;
+}
+.competitor-name {
+  font-size: var(--fs-sm);
+}
+.race-controls {
+  margin: var(--space-md) 0 var(--space-lg);
 }
 .race-row {
   display: grid;
-  grid-template-columns: minmax(150px, 1fr) 2fr;
-  gap: var(--space-sm) var(--space-md);
-  padding: var(--space-md) var(--space-lg);
+  gap: 10px;
+  padding: 14px 16px;
   background: var(--bg-elev-2);
   border: 1px solid var(--border);
+  border-left: 3px solid var(--row-accent);
   border-radius: var(--r-md);
   box-shadow: var(--inset-hi);
+  transition: box-shadow var(--dur-3) var(--ease), border-color var(--dur-3) var(--ease);
 }
-.race-row .meter {
-  grid-column: 1 / -1;
+.race-row-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+.race-row-head strong {
+  flex: 1;
+  font-size: var(--fs-body);
+  font-weight: 600;
+}
+.rank {
+  font: 600 var(--fs-micro) / 1 var(--mono);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-faint);
+  padding: 4px 8px;
+  border-radius: var(--r-pill);
+  border: 1px solid var(--border);
+}
+.rank.placed {
+  color: var(--text);
+  border-color: var(--border-strong);
+}
+.rank.gold {
+  color: var(--accent-contrast);
+  background: var(--accent);
+  border-color: transparent;
+}
+.race-stat {
+  color: var(--text-dim);
+}
+.race-row .meter > span {
+  background: linear-gradient(90deg, color-mix(in srgb, var(--row-accent) 55%, transparent), var(--row-accent));
+}
+.race-row.winner {
+  border-color: color-mix(in srgb, var(--row-accent) 60%, transparent);
+  box-shadow: var(--inset-hi), 0 0 0 1px color-mix(in srgb, var(--row-accent) 40%, transparent),
+    0 0 28px -8px var(--row-accent);
+}
+.winner-banner {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 12px 14px;
+  border-radius: var(--r-md);
+  background: var(--accent-soft);
+  border: 1px solid color-mix(in srgb, var(--accent) 45%, transparent);
+  color: var(--text);
+  font-weight: 600;
+  font-size: var(--fs-sm);
+  animation: rise-in var(--dur-entrance) var(--ease) both;
+}
+.winner-banner svg {
+  color: var(--accent);
+  flex: none;
 }
 
 /* ---- charts (shared) ---- */
@@ -885,21 +976,153 @@ label.field {
   color: var(--text-dim);
 }
 
+/* ---- generic solver dot ---- */
+.dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--row-accent, var(--accent));
+  box-shadow: 0 0 8px -2px var(--row-accent, var(--accent));
+  flex: none;
+  display: inline-block;
+}
+
 /* ---- benchmark dashboard ---- */
-.bench-placeholder {
-  display: grid;
-  gap: 2px;
+.bench-summary {
+  margin-bottom: var(--space-md);
+}
+.bench-chart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
   margin-top: var(--space-lg);
-  font: 500 var(--fs-sm) / 1.5 var(--mono);
+}
+.bench-chart-head .eyebrow {
+  margin: 0;
+}
+.chart-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  margin: var(--space-sm) 0 var(--space-md);
+  font-size: var(--fs-sm);
   color: var(--text-dim);
+}
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.chart {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: var(--space-sm);
+}
+.chart-y {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  text-align: right;
+  padding-bottom: 20px;
+  font: 500 var(--fs-micro) / 1 var(--mono);
+  color: var(--text-faint);
   font-variant-numeric: tabular-nums;
 }
-.bench-row {
-  padding: 9px 10px;
-  border-radius: var(--r-xs);
+.chart-plot {
+  position: relative;
+  display: flex;
+  align-items: end;
+  gap: 10px;
+  min-height: 220px;
+  padding: 10px 10px 0;
+  border-left: 1px solid var(--border-strong);
+  border-bottom: 1px solid var(--border-strong);
+  background: repeating-linear-gradient(
+    to top,
+    var(--grid-line) 0,
+    var(--grid-line) 1px,
+    transparent 1px,
+    transparent 25%
+  );
 }
-.bench-row:nth-child(odd) {
-  background: color-mix(in srgb, var(--bg-elev-2) 55%, transparent);
+.chart-group {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 7px;
+  height: 100%;
+}
+.chart-group .bars {
+  flex: 1;
+  display: flex;
+  align-items: end;
+  justify-content: center;
+  gap: 3px;
+  width: 100%;
+}
+.bar {
+  flex: 1;
+  max-width: 22px;
+  min-height: 2px;
+  height: 0;
+  border-radius: 3px 3px 0 0;
+  box-shadow: var(--inset-hi);
+  transition: height var(--dur-3) var(--ease);
+}
+.xlabel {
+  font: 500 var(--fs-micro) / 1 var(--mono);
+  color: var(--text-dim);
+  white-space: nowrap;
+}
+.bench-note {
+  margin-top: var(--space-md);
+}
+.bench-actions {
+  margin-top: var(--space-md);
+}
+.bench-table-wrap {
+  margin-top: var(--space-lg);
+  overflow-x: auto;
+}
+.bench-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-sm);
+}
+.bench-table th {
+  text-align: left;
+  font: 600 var(--fs-micro) / 1 var(--mono);
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  padding: 9px 10px;
+  border-bottom: 1px solid var(--border-strong);
+  white-space: nowrap;
+}
+.bench-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+.bench-table td:first-child {
+  font-weight: 500;
+}
+.bench-table td .dot {
+  margin-right: 8px;
+  vertical-align: -1px;
+}
+.bench-table th.num,
+.bench-table td.num {
+  text-align: right;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+}
+.bench-table tbody tr:hover {
+  background: var(--bg-elev-2);
 }
 
 /* ---- explainable stages ---- */
@@ -1283,9 +1506,6 @@ kbd {
   }
   .card {
     padding: var(--space-lg);
-  }
-  .race-row {
-    grid-template-columns: 1fr;
   }
   .page-head h1 {
     font-size: 19px;

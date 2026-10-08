@@ -325,30 +325,93 @@ function buildSolveView() {
 }
 let playTimer: number | undefined;
 
+const RANK_LABEL = ["1st", "2nd", "3rd", "4th"];
+function raceEmptyState() {
+  return h("div", { class: "empty", id: "race-empty" }, [
+    h("div", { class: "glyph" }, [icon(ICONS.flag, 22)]),
+    h("h3", {}, ["Ready to race"]),
+    h("p", {}, ["Pick 2–4 solvers, then start — each runs the same scramble in its own worker. Watch the search unfold; first correct completion wins."]),
+  ]);
+}
 function buildRace() {
   const c = h("section", { class: "card" });
-  const checks = h("div", { class: "race-options" });
+  const competitors = SOLVER_OPTIONS.filter((x) => !x.id.includes("2x2"));
   const defaults = ["kociemba", "thistlethwaite", "beginner", "ida-pdb"];
-  for (const s of SOLVER_OPTIONS.filter((x) => !x.id.includes("2x2"))) checks.append(h("label", {}, [h("input", { type: "checkbox", value: s.id, checked: defaults.includes(s.id) }), ` ${s.name}`]));
+  const checks = h("div", { class: "race-options", role: "group", "aria-label": "Choose competitors" });
+  for (const s of competitors) {
+    const cb = h("input", { type: "checkbox", value: s.id, checked: defaults.includes(s.id) });
+    checks.append(h("label", { class: "competitor", style: `--row-accent: var(--solver-${s.id})` }, [cb, h("span", { class: "dot", "aria-hidden": "true" }), h("span", { class: "competitor-name" }, [s.name])]));
+  }
   const output = h("div", { id: "race-results", class: "stack" });
-  c.append(checks, h("div", { class: "row" }, [button("Start race", () => {
-    output.replaceChildren();
+  output.append(raceEmptyState());
+
+  const startRace = () => {
     for (const job of raceJobs.splice(0)) job.cancel();
     for (const timer of raceTimers.splice(0)) clearInterval(timer);
     const selected = [...checks.querySelectorAll<HTMLInputElement>("input:checked")].map((x) => x.value);
     if (selected.length < 2 || selected.length > 4) { toast("Select 2–4 solvers"); return; }
-    const jobs = selected.map((id) => {
-      const row = h("div", { class: "race-row" }); const title = SOLVER_OPTIONS.find((x) => x.id === id)!.name;
-      const stats = h("span", { class: "subtle" }, ["Starting…"]); const bar = h("div", { class: "meter" }, [h("span")]); row.append(h("strong", {}, [title]), stats, bar); output.append(row);
+    output.replaceChildren();
+    delete output.dataset.winner;
+    const banner = h("div", { class: "winner-banner hidden", role: "status", "aria-live": "polite" });
+    output.append(banner);
+    let finishCount = 0;
+    for (const id of selected) {
+      const title = SOLVER_OPTIONS.find((x) => x.id === id)!.name;
+      const rank = h("span", { class: "rank" }, ["running"]);
+      const stats = h("span", { class: "race-stat readout" }, ["Starting…"]);
+      const bar = h("div", { class: "meter", role: "progressbar", "aria-label": `${title} progress` }, [h("span")]);
+      const row = h("div", { class: "race-row", style: `--row-accent: var(--solver-${id})` }, [
+        h("div", { class: "race-row-head" }, [h("span", { class: "dot", "aria-hidden": "true" }), h("strong", {}, [title]), rank]),
+        stats, bar,
+      ]);
+      output.append(row);
       const startedAt = performance.now(); let liveNodes = 0; let liveDepth = 0; let finished = false;
       const clock = window.setInterval(() => { if (!finished) stats.textContent = `${liveNodes.toLocaleString()} nodes${liveDepth ? ` · depth ${liveDepth}` : ""} · ${(performance.now() - startedAt).toFixed(0)} ms`; }, 250);
       raceTimers.push(clock);
-      const job = runSolve(id, cube, { timeoutMs: 30000, progressInterval: 25000 }, { onProgress: (p) => { liveNodes = p.nodesExpanded; liveDepth = p.threshold ?? p.g ?? 0; stats.textContent = `${p.nodesExpanded.toLocaleString()} nodes${p.threshold == null ? "" : ` · depth ${p.threshold}`} · ${p.phase ?? "searching"}`; (bar.firstElementChild as HTMLElement).style.width = `${Math.min(95, Math.log10(p.nodesExpanded + 1) * 15)}%`; }, onBuilding: (t) => { stats.textContent = `Building ${t}…`; } });
+      const job = runSolve(id, cube, { timeoutMs: 30000, progressInterval: 25000 }, {
+        onProgress: (p) => { liveNodes = p.nodesExpanded; liveDepth = p.threshold ?? p.g ?? 0; stats.textContent = `${p.nodesExpanded.toLocaleString()} nodes${p.threshold == null ? "" : ` · depth ${p.threshold}`} · ${p.phase ?? "searching"}`; (bar.firstElementChild as HTMLElement).style.width = `${Math.min(95, Math.log10(p.nodesExpanded + 1) * 15)}%`; },
+        onBuilding: (t) => { stats.textContent = `Building ${t}…`; },
+      });
       raceJobs.push(job);
-      job.promise.then((r) => { finished = true; clearInterval(clock); stats.textContent = r.solved ? `${r.stats.solutionLength} moves · ${r.stats.timeMs.toFixed(0)} ms` : r.timedOut ? "Timed out" : "No solution"; (bar.firstElementChild as HTMLElement).style.width = r.solved ? "100%" : "0%"; if (r.solved && !output.dataset.winner) { output.dataset.winner = id; row.classList.add("winner"); toast(`${title} wins the race!`); } }).catch((e) => { finished = true; clearInterval(clock); stats.textContent = `Error: ${e.message}`; });
-      return job;
-    });
-  }), button("Race a new scramble", () => { const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff)); painterColors = cubieToFacelet(sc.cube); startCube = sc.cube; solution = []; solutionStages = []; cursor = 0; setCube(sc.cube); window.sessionStorage.setItem("cubelab-scramble", sc.alg); })]), output);
+      job.promise.then((r) => {
+        finished = true; clearInterval(clock);
+        (bar.firstElementChild as HTMLElement).style.width = r.solved ? "100%" : "0%";
+        bar.setAttribute("aria-valuenow", r.solved ? "100" : "0");
+        if (r.solved) {
+          const place = finishCount++;
+          stats.textContent = `${r.stats.solutionLength} moves · ${r.stats.timeMs.toFixed(0)} ms · ${r.stats.nodesExpanded.toLocaleString()} nodes`;
+          rank.textContent = RANK_LABEL[place] ?? `#${place + 1}`;
+          rank.classList.add("placed");
+          if (place === 0) {
+            output.dataset.winner = id; row.classList.add("winner");
+            rank.classList.add("gold");
+            banner.replaceChildren(icon(ICONS.trophy, 18), h("span", {}, [`${title} wins — ${r.stats.solutionLength} moves in ${r.stats.timeMs.toFixed(0)} ms`]));
+            banner.classList.remove("hidden");
+            toast(`${title} takes the race`);
+          }
+        } else {
+          stats.textContent = r.timedOut ? "Timed out" : "No solution";
+          rank.textContent = r.timedOut ? "timeout" : "—";
+        }
+      }).catch((e) => { finished = true; clearInterval(clock); stats.textContent = `Error: ${e.message}`; rank.textContent = "error"; });
+    }
+  };
+  const newScramble = () => {
+    const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff));
+    painterColors = cubieToFacelet(sc.cube); startCube = sc.cube; solution = []; solutionStages = []; cursor = 0; setCube(sc.cube);
+    window.sessionStorage.setItem("cubelab-scramble", sc.alg);
+    for (const job of raceJobs.splice(0)) job.cancel();
+    for (const timer of raceTimers.splice(0)) clearInterval(timer);
+    output.replaceChildren(raceEmptyState());
+    toast("New scramble loaded");
+  };
+
+  c.append(
+    h("p", { class: "eyebrow" }, ["COMPETITORS"]),
+    checks,
+    h("div", { class: "row race-controls" }, [labelIconBtn(ICONS.flag, "Start race", startRace, true), labelIconBtn(ICONS.shuffle, "New scramble", newScramble)]),
+    output,
+  );
   return c;
 }
 function buildExplorer() {
@@ -408,16 +471,102 @@ function buildLearn() {
   c.append(info, h("div", { class: "row" }, [button("Solve for hints", () => { learnStep = 0; solveNow(); }), button("Reveal expected move", () => { if (!solution.length) { info.textContent = "No solution loaded yet. Solve this cube first."; return; } info.textContent = `Hint ${learnStep + 1}/${solution.length}: try ${MOVES[solution[learnStep]!]!.name} using the keyboard or face buttons.`; })]), faces);
   return c;
 }
+type Aggregate = { solver: string; depth: string; count: number; successRate: number; avgLength: number; avgTimeMs: number; avgNodes: number };
+const solverVar = (id: string) => (["kociemba", "thistlethwaite", "beginner", "ida-pdb", "bfs-2x2", "bibfs-2x2"].includes(id) ? `var(--solver-${id})` : "var(--accent)");
+const solverName = (id: string) => SOLVER_OPTIONS.find((s) => s.id === id)?.name ?? id;
+const BENCH_METRICS = [
+  { id: "moves", label: "Avg moves", get: (a: Aggregate) => a.avgLength, fmt: (v: number) => v.toFixed(1), log: false },
+  { id: "time", label: "Avg time", get: (a: Aggregate) => a.avgTimeMs, fmt: (v: number) => `${v.toFixed(0)} ms`, log: false },
+  { id: "nodes", label: "Avg nodes", get: (a: Aggregate) => a.avgNodes, fmt: (v: number) => Math.round(v).toLocaleString(), log: true },
+] as const;
+
+function benchChart(aggs: Aggregate[], metricId: string) {
+  const metric = BENCH_METRICS.find((m) => m.id === metricId) ?? BENCH_METRICS[0]!;
+  const depths = [...new Set(aggs.map((a) => a.depth))];
+  const solvers = [...new Set(aggs.map((a) => a.solver))];
+  const vals = aggs.map((a) => metric.get(a));
+  const max = Math.max(1, ...vals);
+  const scale = (v: number) => (metric.log ? Math.log10(v + 1) / Math.log10(max + 1) : v / max);
+  const yTick = (f: number) => metric.fmt(metric.log ? Math.pow(10, Math.log10(max + 1) * f) - 1 : max * f);
+  const yaxis = h("div", { class: "chart-y" }, [1, 0.75, 0.5, 0.25, 0].map((f) => h("span", {}, [yTick(f)])));
+  const plot = h("div", { class: "chart-plot" });
+  for (const depth of depths) {
+    const bars = h("div", { class: "bars" });
+    for (const solver of solvers) {
+      const a = aggs.find((x) => x.solver === solver && x.depth === depth);
+      if (!a) continue;
+      const v = metric.get(a);
+      const bar = h("div", { class: "bar", style: `background:${solverVar(solver)}`, title: `${solverName(solver)} · depth ${depth}: ${metric.fmt(v)}` });
+      bars.append(bar);
+      requestAnimationFrame(() => { bar.style.height = `${Math.max(1, scale(v) * 100)}%`; });
+    }
+    plot.append(h("div", { class: "chart-group" }, [bars, h("span", { class: "xlabel" }, [depth])]));
+  }
+  return h("div", { class: "chart" }, [yaxis, plot]);
+}
+
 function buildBench() {
   const c = h("section", { class: "card" });
-  type Aggregate = { solver: string; depth: string; count: number; successRate: number; avgLength: number; avgTimeMs: number; avgNodes: number };
-  const table = h("div", { class: "bench-placeholder" });
+  let aggs = (benchmarkData.aggregates ?? []) as Aggregate[];
+  let metricId = "moves";
+
+  const summary = h("div", { class: "stat-grid bench-summary" });
+  const legend = h("div", { class: "chart-legend" });
+  const chartWrap = h("div", { class: "chart-wrap" });
+  const table = h("div", { class: "bench-table-wrap" });
+
+  const chartTitle = h("p", { class: "eyebrow" }, ["AVG MOVES BY SCRAMBLE DEPTH"]);
+  const metricSeg = h("div", { class: "seg", role: "group", "aria-label": "Chart metric" });
+  for (const m of BENCH_METRICS) {
+    const b = h("button", { class: `seg-btn${m.id === metricId ? " active" : ""}`, type: "button", "aria-pressed": String(m.id === metricId) }, [m.label]);
+    b.onclick = () => { metricId = m.id; [...metricSeg.children].forEach((x) => { const on = x === b; x.classList.toggle("active", on); x.setAttribute("aria-pressed", String(on)); }); chartTitle.textContent = `${m.label.toUpperCase()} BY SCRAMBLE DEPTH`; chartWrap.replaceChildren(benchChart(aggs, metricId)); };
+    metricSeg.append(b);
+  }
+
+  const renderAll = () => {
+    const solvers = [...new Set(aggs.map((a) => a.solver))];
+    const scrambles = aggs.reduce((n, a) => n + a.count, 0);
+    const solved = aggs.filter((a) => a.successRate > 0);
+    const fastest = solved.length ? solved.reduce((best, a) => (a.avgTimeMs < best.avgTimeMs ? a : best)) : undefined;
+    summary.replaceChildren(
+      h("div", { class: "stat" }, [h("div", { class: "k" }, ["Solvers"]), h("div", { class: "v" }, [String(solvers.length)])]),
+      h("div", { class: "stat" }, [h("div", { class: "k" }, ["Test groups"]), h("div", { class: "v" }, [String(aggs.length)])]),
+      h("div", { class: "stat" }, [h("div", { class: "k" }, ["Scrambles"]), h("div", { class: "v" }, [scrambles.toLocaleString()])]),
+      h("div", { class: "stat" }, [h("div", { class: "k" }, ["Fastest avg"]), h("div", { class: "v" }, [fastest ? `${fastest.avgTimeMs.toFixed(0)} ms` : "—"])]),
+    );
+    legend.replaceChildren(...solvers.map((s) => h("span", { class: "legend-item" }, [h("span", { class: "dot", style: `--row-accent:${solverVar(s)}`, "aria-hidden": "true" }), solverName(s)])));
+    chartWrap.replaceChildren(benchChart(aggs, metricId));
+    const cols: [string, string][] = [["Solver", ""], ["Depth", "num"], ["Solved", "num"], ["Avg moves", "num"], ["Avg time", "num"], ["Avg nodes", "num"]];
+    const head = h("tr", {}, cols.map(([t, cls]) => h("th", { class: cls }, [t])));
+    const body = h("tbody", {}, aggs.map((a) => h("tr", {}, [
+      h("td", {}, [h("span", { class: "dot", style: `--row-accent:${solverVar(a.solver)}`, "aria-hidden": "true" }), solverName(a.solver)]),
+      h("td", { class: "num" }, [a.depth]),
+      h("td", { class: "num" }, [`${Math.round(a.successRate * a.count)}/${a.count}`]),
+      h("td", { class: "num" }, [a.avgLength.toFixed(1)]),
+      h("td", { class: "num" }, [`${a.avgTimeMs.toFixed(0)} ms`]),
+      h("td", { class: "num" }, [Math.round(a.avgNodes).toLocaleString()]),
+    ])));
+    table.replaceChildren(h("table", { class: "bench-table" }, [h("thead", {}, [head]), body]));
+  };
+
   const input = h("input", { type: "file", accept: "application/json,.json", "aria-label": "Load benchmark JSON" }) as HTMLInputElement;
-  const renderRows = (aggs: Aggregate[]) => table.replaceChildren(...aggs.map((a) => h("div", { class: "bench-row" }, [`${a.solver} · ${a.depth}: ${(a.successRate * a.count).toFixed(0)}/${a.count} solved · ${a.avgLength.toFixed(2)} moves · ${a.avgTimeMs.toFixed(2)} ms · ${a.avgNodes.toFixed(0)} nodes`])));
-  renderRows((benchmarkData.aggregates ?? []) as Aggregate[]);
-  input.onchange = async () => { const file = input.files?.[0]; if (!file) return; try { const data = JSON.parse(await file.text()) as { aggregates?: Aggregate[] }; if (!Array.isArray(data.aggregates)) throw Error("Missing aggregates array"); renderRows(data.aggregates); toast(`Loaded ${data.aggregates.length} benchmark groups`); } catch (e) { toast(`Could not load benchmark JSON: ${(e as Error).message}`); } };
-  const download = button("Download current results JSON", () => { const blob = new Blob([JSON.stringify(benchmarkData, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "cubelab-benchmark-results.json"; a.click(); URL.revokeObjectURL(url); });
-  c.append(h("div", { class: "row" }, [input, download]), h("p", { class: "subtle" }, ["This dashboard displays the bundled measured dataset or a JSON file from another benchmark run. Full methodology and limitations: docs/BENCHMARK_ANALYSIS.md."]), table);
+  input.onchange = async () => { const file = input.files?.[0]; if (!file) return; try { const data = JSON.parse(await file.text()) as { aggregates?: Aggregate[] }; if (!Array.isArray(data.aggregates)) throw Error("Missing aggregates array"); aggs = data.aggregates; renderAll(); toast(`Loaded ${data.aggregates.length} benchmark groups`); } catch (e) { toast(`Could not load benchmark JSON: ${(e as Error).message}`); } };
+  const download = labelIconBtn(ICONS.link, "Download JSON", () => { const blob = new Blob([JSON.stringify(benchmarkData, null, 2)], { type: "application/json" }); const url = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = url; a.download = "cubelab-benchmark-results.json"; a.click(); URL.revokeObjectURL(url); });
+
+  if (!aggs.length) {
+    c.append(h("div", { class: "empty" }, [h("div", { class: "glyph" }, [icon(ICONS.chart, 22)]), h("h3", {}, ["No benchmark data"]), h("p", {}, ["Load a results JSON from a benchmark run to see the dashboard."]), h("div", { class: "row" }, [input])]));
+    return c;
+  }
+  renderAll();
+  c.append(
+    summary,
+    h("div", { class: "bench-chart-head" }, [chartTitle, metricSeg]),
+    legend,
+    chartWrap,
+    h("p", { class: "subtle bench-note" }, ["Bundled measured dataset — machine-dependent. Methodology and limits: docs/BENCHMARK_ANALYSIS.md."]),
+    h("div", { class: "row bench-actions" }, [input, download]),
+    table,
+  );
   return c;
 }
 function buildScannerView() {
