@@ -131,6 +131,21 @@ const VIEW_META: Record<string, { idx: string; title: string; lead: string }> = 
   scanner: { idx: "07", title: "Camera scanner", lead: "Capture each face with your camera or a photo; centers self-calibrate color under your lighting." },
   bench: { idx: "08", title: "Benchmarks", lead: "Measured solver performance across scramble depths. Values are machine-dependent." },
 };
+function statTile(label: string, value: HTMLElement) {
+  return h("div", { class: "stat" }, [h("div", { class: "k" }, [label]), value]);
+}
+function legendItem(color: string, label: string) {
+  return h("span", { class: "legend-item" }, [h("span", { class: "dot", style: `--row-accent:${color}`, "aria-hidden": "true" }), label]);
+}
+function emptyState(ico: string, title: string, body: string, extra?: HTMLElement) {
+  const el = h("div", { class: "empty" }, [
+    h("div", { class: "glyph" }, [icon(ico, 22)]),
+    h("h3", {}, [title]),
+    h("p", {}, [body]),
+  ]);
+  if (extra) el.append(extra);
+  return el;
+}
 function pageHeader(id: string, actions?: HTMLElement) {
   const m = VIEW_META[id]!;
   const head = h("div", { class: "page-head" });
@@ -416,13 +431,51 @@ function buildRace() {
 }
 function buildExplorer() {
   const c = h("section", { class: "card" });
+  const vThreshold = h("div", { class: "v" }, ["—"]);
+  const vG = h("div", { class: "v" }, ["—"]);
+  const vH = h("div", { class: "v" }, ["—"]);
+  const vNodes = h("div", { class: "v" }, ["—"]);
+  const statGrid = h("div", { class: "stat-grid" }, [statTile("Threshold", vThreshold), statTile("g(n)", vG), statTile("h(n)", vH), statTile("Nodes", vNodes)]);
+  const legend = h("div", { class: "chart-legend" }, [legendItem("var(--accent)", "g(n) — path cost"), legendItem("var(--solver-thistlethwaite)", "h(n) — heuristic")]);
   const chart = h("div", { class: "explorer-chart", id: "explorer-chart", "aria-label": "Search depth and heuristic samples" });
   const tree = h("div", { class: "tree-samples", id: "tree-samples" });
-  const summary = h("p", { id: "explorer-status", role: "status", class: "subtle" }, ["Ready to inspect a search."]);
-  c.append(h("div", { class: "row" }, [button("Start IDA* exploration", () => {
-    chart.replaceChildren(); tree.replaceChildren(); const samples: SolverProgress[] = [];
-    activeJob?.cancel(); activeJob = runSolve("ida-pdb", cube, { timeoutMs: 30000, maxDepth: 8, progressInterval: 1000 }, { onBuilding: (t) => { summary.textContent = `Building ${t}…`; }, onProgress: (p) => { samples.push(p); summary.textContent = `Threshold ${p.threshold ?? "—"} · g=${p.g ?? "—"} · h=${p.h ?? "—"} · ${p.nodesExpanded.toLocaleString()} nodes`; const sample = h("div", { class: "chart-sample", title: `g ${p.g ?? 0}, h ${p.h ?? 0}` }); const gBar = h("span", { class: "chart-bar g-bar" }); const hBar = h("span", { class: "chart-bar h-bar" }); gBar.style.height = `${Math.max(4, Math.min(100, (p.g ?? 0) * 10))}%`; hBar.style.height = `${Math.max(4, Math.min(100, (p.h ?? 0) * 10))}%`; sample.append(gBar, hBar); chart.append(sample); if (samples.length < 24) { const level = Math.min(6, p.g ?? 0); const node = h("span", { class: "tree-node", title: `sampled depth ${level}; h=${p.h ?? 0}` }, [`g${level} · h${p.h ?? 0}`]); node.style.marginLeft = `${level * 14}px`; tree.append(node); } } }); activeJob.promise.then((r) => { summary.textContent = `${r.solved ? "Solved" : "Search ended"} · ${r.stats.nodesExpanded.toLocaleString()} nodes · ${r.stats.timeMs.toFixed(0)} ms`; }).catch((e) => { summary.textContent = e.message; });
-  }), button("Cancel search", () => activeJob?.cancel())]), summary, chart, h("small", { class: "subtle" }, ["Each bar samples g(n)+h(n); compact labels show g/h samples. The engine emits throttled telemetry."]), tree);
+  const note = h("small", { class: "subtle" }, ["Each bar pairs g(n) (depth so far) with h(n) (admissible estimate); the frontier below samples sampled nodes. The engine emits throttled telemetry."]);
+  const live = h("div", { class: "explorer-live" }, [statGrid, legend, chart, note, tree]);
+  const body = h("div", { class: "explorer-body" }, [emptyState(ICONS.search, "Inspect a search", "Start an IDA* exploration to stream thresholds, g/h samples and the frontier it expands.")]);
+  const summary = h("p", { id: "explorer-status", role: "status", class: "subtle readout" }, ["Ready."]);
+
+  const start = labelIconBtn(ICONS.search, "Start IDA* exploration", () => {
+    body.replaceChildren(live);
+    chart.replaceChildren(); tree.replaceChildren();
+    vThreshold.textContent = vG.textContent = vH.textContent = vNodes.textContent = "—";
+    summary.className = "subtle readout"; summary.textContent = "Starting worker…";
+    const samples: SolverProgress[] = [];
+    activeJob?.cancel();
+    activeJob = runSolve("ida-pdb", cube, { timeoutMs: 30000, maxDepth: 8, progressInterval: 1000 }, {
+      onBuilding: (t) => { summary.textContent = `Building ${t}…`; },
+      onProgress: (p) => {
+        samples.push(p);
+        vThreshold.textContent = String(p.threshold ?? "—");
+        vG.textContent = String(p.g ?? "—");
+        vH.textContent = String(p.h ?? "—");
+        vNodes.textContent = p.nodesExpanded.toLocaleString();
+        summary.textContent = `Threshold ${p.threshold ?? "—"} · ${p.nodesExpanded.toLocaleString()} nodes expanded`;
+        const sample = h("div", { class: "chart-sample", title: `g ${p.g ?? 0}, h ${p.h ?? 0}` });
+        const gBar = h("span", { class: "chart-bar g-bar" });
+        const hBar = h("span", { class: "chart-bar h-bar" });
+        gBar.style.height = `${Math.max(4, Math.min(100, (p.g ?? 0) * 10))}%`;
+        hBar.style.height = `${Math.max(4, Math.min(100, (p.h ?? 0) * 10))}%`;
+        sample.append(gBar, hBar); chart.append(sample);
+        if (samples.length < 24) { const level = Math.min(6, p.g ?? 0); const node = h("span", { class: "tree-node", title: `sampled depth ${level}; h=${p.h ?? 0}` }, [`g${level} · h${p.h ?? 0}`]); node.style.marginLeft = `${level * 14}px`; tree.append(node); }
+      },
+    });
+    activeJob.promise
+      .then((r) => { summary.className = `subtle readout ${r.solved ? "valid" : ""}`; summary.textContent = `${r.solved ? "Solved" : "Search ended"} · ${r.stats.nodesExpanded.toLocaleString()} nodes · ${r.stats.timeMs.toFixed(0)} ms`; })
+      .catch((e) => { summary.className = "subtle readout invalid"; summary.textContent = `Search error: ${e.message}`; });
+  }, true);
+  const cancel = labelIconBtn(ICONS.stop, "Cancel", () => { activeJob?.cancel(); summary.textContent = "Search cancelled."; });
+
+  c.append(h("div", { class: "row" }, [start, cancel]), summary, body);
   return c;
 }
 function buildLab() {

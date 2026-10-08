@@ -975,6 +975,14 @@ label.field {
   background: var(--bg-elev-2);
   color: var(--text-dim);
 }
+.explorer-body {
+  margin-top: var(--space-md);
+}
+.explorer-live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-lg);
+}
 
 /* ---- generic solver dot ---- */
 .dot {
