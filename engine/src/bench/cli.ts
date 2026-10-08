@@ -123,7 +123,12 @@ function solvedCorners(cube: CubieCube): boolean {
 }
 
 async function main() {
-  const args = parseArgs(process.argv.slice(2));
+  const argv = process.argv.slice(2);
+  if (argv.includes("--help") || argv.includes("-h")) {
+    console.log(`cubelab-bench options:\n  --solvers all|id,id       Solver IDs (default: all)\n  --scrambles N             Samples per depth (default: 50)\n  --depths 5,10,15,20,random\n  --seed N                  Deterministic seed (default: 42)\n  --timeout MS              Per-solve cap (default: 10000)\n  --maxOptimalDepth N       IDA* depth cap (default: 8)\n  --out DIR                 JSON/CSV directory\n  --plots DIR               SVG/summary directory\n\n2x2 BFS solvers run only on their supported corner-state projection. IDA* is depth-capped.`);
+    return;
+  }
+  const args = parseArgs(argv);
   console.log("cubelab-bench", JSON.stringify(args));
 
   console.log("building solver tables…");

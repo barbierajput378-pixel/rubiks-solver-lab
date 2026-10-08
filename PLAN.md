@@ -52,7 +52,7 @@ LICENSE     MIT
       reset, move-by-move playback + timeline, manual color painter w/ live validity,
       shareable URL encoding. Dark/light, responsive, a11y, web-worker solving and IndexedDB
       optimal-table cache. ✅ Core UI plus first lab views. Build and 43 tests pass.
-- [ ] **Phase 5 — Unique features.**
+- [x] **Phase 5 — Unique features.** Core features completed; optional timer remains out of scope.
       - [x] 1. Solver Race Mode (2–4 parallel workers, live search stats, winner).
       - [x] 2. Search Explorer (IDA* threshold and heuristic telemetry, sampled tree).
       - [x] 3. Heuristic Lab (toggle PDBs and compare nodes/time).
@@ -62,12 +62,13 @@ LICENSE     MIT
       - [x] 7. Camera scanner (getUserMedia, Lab center calibration, confidence, upload/manual fixes); 2 classifier tests pass.
       - [x] 8. In-app benchmark dashboard.
       - [ ] 9. Optional timer / solve-then-compare.
-- [ ] **Phase 6 — Quality/polish.** Loading states, IndexedDB PDB cache, error states,
-      lazy-loading, micro-interactions, onboarding, scanner classifier tests, GitHub
-      Actions CI + Pages deploy. Commit.
-- [ ] **README.md** (last): pitch, screenshots, Mermaid architecture, algorithm summaries,
-      real benchmark table/plots, honest limitations, build/run, roadmap, credits, "why".
-- [ ] **Final summary** printed: built / how to run / missing / next steps.
+- [x] **Phase 6 — Quality/polish.** Loading states, IndexedDB PDB cache, solver/WebGL/camera/JSON
+      error states, lazy-loaded 3D viewer, onboarding, scanner tests under brightness/warm shifts,
+      GitHub Actions build/test/type-lint + Pages deploy. Lighthouse desktop preview: performance
+      65, accessibility 100; the performance limitation is documented.
+- [x] **README.md**: screenshots, Mermaid architecture, algorithm summaries, measured benchmark
+      table/plots, honest limitations, build/run, deployment, and “Why I built this”.
+- [x] **Final summary** printed: built / how to run / missing / next steps.
 
 ## Working rules (from spec)
 - Commit after every phase (Conventional Commits). Tests green before moving on.

@@ -9,9 +9,10 @@
     "web"
   ],
   "scripts": {
-    "test": "npm run test --workspace @cubelab/engine",
+    "test": "npm run build:engine && npm run test --workspace @cubelab/engine && npm run test --workspace @cubelab/web",
+    "lint": "npm run build:engine && npm run lint --workspaces --if-present",
     "build:engine": "npm run build --workspace @cubelab/engine",
-    "bench": "npm run bench --workspace @cubelab/engine",
+    "bench": "npm run bench --workspace @cubelab/engine --",
     "dev": "npm run dev --workspace @cubelab/web",
     "build:web": "npm run build --workspace @cubelab/web"
   },

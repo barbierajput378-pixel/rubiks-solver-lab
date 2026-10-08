@@ -68,6 +68,9 @@ export class CubeView {
   private facelets: FaceletCube = SOLVED_FACELETS.slice();
   private faceColors: THREE.Color[] = [];
   private animating = false;
+  private disposed = false;
+  private animationFrame = 0;
+  private readonly resizeBound = () => this.resize();
   private animMs: number;
   reducedMotion: boolean;
   onMove?: (face: Face, power: 1 | 2 | 3) => void;
@@ -102,8 +105,8 @@ export class CubeView {
     this.recolor();
     this.attachPointer();
     this.resize();
-    window.addEventListener("resize", () => this.resize());
-    this.loop();
+    window.addEventListener("resize", this.resizeBound);
+    this.animationFrame = requestAnimationFrame(this.loop);
   }
 
   /** Read cube face colors from CSS variables (theme + colorblind aware). */
@@ -317,11 +320,17 @@ export class CubeView {
   }
 
   private loop = () => {
+    if (this.disposed) return;
     this.renderer.render(this.scene, this.camera);
-    requestAnimationFrame(this.loop);
+    this.animationFrame = requestAnimationFrame(this.loop);
   };
 
   dispose() {
+    this.disposed = true;
+    cancelAnimationFrame(this.animationFrame);
+    window.removeEventListener("resize", this.resizeBound);
     this.renderer.dispose();
+    for (const sticker of this.stickers) sticker.mat.dispose();
+    for (const cubie of this.cubies) cubie.traverse((o) => { if (o instanceof THREE.Mesh) o.geometry.dispose(); });
   }
 }

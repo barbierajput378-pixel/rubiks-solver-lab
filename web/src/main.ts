@@ -1,11 +1,12 @@
 import "./styles/app.css";
 import {
-  Face, FACE_NAMES, MOVES, SOLVER_LIST, SOLVED_FACELETS, applyMoveIndex,
+  Face, FACE_NAMES, MOVES, SOLVED_FACELETS, applyMoveIndex,
   cubieToFacelet, randomScramble, uniformRandomState, solvedCube, validateFacelets,
 } from "@cubelab/engine";
 import type { CubieCube, FaceletCube, SolveStage, SolverProgress } from "@cubelab/engine";
-import { CubeView } from "./cube3d/CubeView";
+import type { CubeView } from "./cube3d/CubeView";
 import { runSolve } from "./engine/solverClient";
+import type { RunningSolve } from "./engine/solverClient";
 import { buildScanner } from "./scanner/scanner";
 import benchmarkData from "../../bench-out/results.json";
 import { h, toast } from "./ui/dom";
@@ -21,11 +22,21 @@ let startCube: CubieCube = solvedCube();
 let solution: number[] = [];
 let solutionStages: SolveStage[] = [];
 let cursor = 0;
+let learnStep = 0;
+let learnHint: HTMLElement | undefined;
 let activeJob: ReturnType<typeof runSolve> | undefined;
-let currentView: CubeView;
+let currentView: CubeView | undefined;
+const raceJobs: RunningSolve[] = [];
+const raceTimers: number[] = [];
+const SOLVER_OPTIONS = [
+  { id: "kociemba", name: "Kociemba two-phase" }, { id: "thistlethwaite", name: "Thistlethwaite" },
+  { id: "beginner", name: "Beginner hybrid" }, { id: "ida-pdb", name: "IDA* + pattern DB (optimal)" },
+  { id: "bibfs-2x2", name: "Bidirectional BFS (2×2)" }, { id: "bfs-2x2", name: "BFS (2×2)" },
+];
 let progressText = "Ready";
 let painterColors: FaceletCube = SOLVED_FACELETS.slice();
-let activeTab = "solve";
+let activeTab = new URLSearchParams(location.search).get("view") ?? "solve";
+if (!["solve", "race", "explorer", "lab", "doctor", "learn", "scanner", "bench"].includes(activeTab)) activeTab = "solve";
 const settings = { solver: "kociemba", speed: 1 };
 
 const setCube = (next: CubieCube) => {
@@ -46,7 +57,7 @@ header.append(h("div", { class: "spacer" }));
 const themeButton = h("button", { class: "btn ghost", type: "button", "aria-label": "Toggle light and dark theme" }, ["◐ Theme"]);
 themeButton.onclick = () => { const theme = document.documentElement.dataset.theme === "dark" ? "light" : "dark"; document.documentElement.dataset.theme = theme; localStorage.setItem("cubelab-theme", theme); currentView?.readThemeColors(); };
 header.append(themeButton);
-const cbButton = h("button", { class: "btn ghost", type: "button", "aria-label": "Toggle colorblind-safe cube colors" }, ["◉ Palette"]);
+const cbButton = h("button", { class: "btn ghost", type: "button", "aria-label": "Palette" }, ["◉ Palette"]);
 cbButton.onclick = () => { const cb = document.documentElement.dataset.cb === "on" ? "off" : "on"; document.documentElement.dataset.cb = cb; localStorage.setItem("cubelab-cb", cb); currentView?.readThemeColors(); };
 header.append(cbButton);
 shell.append(header);
@@ -76,15 +87,19 @@ function commitTurn(face: Face, power: 1 | 2 | 3) {
   if (currentView?.isAnimating) return;
   const idx = MOVES.findIndex((m) => m.face === face && m.power === power);
   if (idx >= 0) {
-    void currentView.turn(face, power, true);
+    const expected = solution[learnStep];
+    if (currentView) void currentView.turn(face, power, true);
     cube = applyMoveIndex(cube, idx);
-    solution = []; cursor = 0;
+    if (activeTab === "learn") {
+      if (expected === idx) { learnStep++; if (learnHint) learnHint.textContent = learnStep >= solution.length ? "Correct move. Cube solved!" : "Correct move. Ask for the next hint when ready."; }
+      else if (learnHint) learnHint.textContent = "That move does not match the expected move. You can undo it with the inverse key.";
+    } else { solution = []; solutionStages = []; cursor = 0; }
     updateHash(); renderPlayback();
   }
 }
 function solveNow() {
   activeJob?.cancel();
-  startCube = cube; solution = []; cursor = 0;
+  startCube = cube; solution = []; solutionStages = []; cursor = 0;
   const meter = document.querySelector<HTMLElement>("#solve-meter span");
   const status = document.querySelector<HTMLElement>("#solve-status");
   if (status) status.textContent = "Starting worker…";
@@ -96,7 +111,7 @@ function solveNow() {
   activeJob.promise.then((result) => {
     activeJob = undefined;
     if (!result.solved) { if (status) status.textContent = result.timedOut ? "Time limit reached. Try another solver." : "No solution returned."; if (meter) meter.style.width = "0"; return; }
-    solution = result.solution.slice(); solutionStages = result.stages ?? []; cursor = 0; progressText = `${result.solution.length} moves · ${result.stats.timeMs.toFixed(1)} ms`;
+    solution = result.solution.slice(); solutionStages = result.stages ?? []; cursor = 0; learnStep = 0; progressText = `${result.solution.length} moves · ${result.stats.timeMs.toFixed(1)} ms`;
     if (status) status.textContent = progressText; if (meter) meter.style.width = "100%";
     window.setTimeout(() => { if (meter) meter.style.width = "0"; }, 800);
     updateHash(); renderPlayback();
@@ -112,13 +127,13 @@ function renderPlayback() {
   const slider = document.querySelector<HTMLInputElement>("#playback-range");
   if (slider) { slider.max = String(solution.length); slider.value = String(cursor); }
   if (label) label.textContent = `${cursor} / ${solution.length} moves`;
-  if (stages) stages.replaceChildren(...solutionStages.map((s) => h("div", { class: "stage-note" }, [h("strong", {}, [s.label]), h("span", {}, [s.explanation])])));
+  if (stages) { let offset = 0; stages.replaceChildren(...solutionStages.map((s, i) => { const begin = offset; offset += s.moves.length; const active = cursor >= begin && (cursor < offset || (i === solutionStages.length - 1 && cursor === solution.length)); return h("div", { class: `stage-note${active ? " active" : ""}` }, [h("strong", {}, [s.label]), h("span", {}, [s.explanation])]); })); }
 }
 function seek(n: number) {
   cursor = Math.max(0, Math.min(solution.length, n));
   let c = { cp: startCube.cp.slice(), co: startCube.co.slice(), ep: startCube.ep.slice(), eo: startCube.eo.slice() };
   for (let i = 0; i < cursor; i++) c = applyMoveIndex(c, solution[i]!);
-  cube = c; currentView.setCube(cube); renderPlayback();
+  cube = c; currentView?.setCube(cube); renderPlayback();
 }
 function buildSolveView() {
   const layout = h("div", { class: "layout" });
@@ -128,32 +143,31 @@ function buildSolveView() {
   stageCard.append(stage); left.append(stageCard);
   const playback = card("Solution playback", "Scrub or select a move to inspect the solution.");
   const controls = h("div", { class: "row" });
-  controls.append(button("⏮", () => seek(cursor - 1), false, "Step back"), button("▶ / ❚❚", () => { if (playTimer) { clearInterval(playTimer); playTimer = undefined; } else playTimer = window.setInterval(() => { if (cursor >= solution.length) { clearInterval(playTimer); playTimer = undefined; return; } seek(cursor + 1); }, 650 / settings.speed); }, false, "Play or pause solution"), button("⏭", () => seek(cursor + 1), false, "Step forward"));
+  controls.append(button("Back", () => seek(cursor - 1), false, "Step back"), button("Play / pause", () => { if (playTimer) { clearInterval(playTimer); playTimer = undefined; } else playTimer = window.setInterval(() => { if (cursor >= solution.length) { clearInterval(playTimer); playTimer = undefined; return; } seek(cursor + 1); }, 650 / settings.speed); }, false, "Play or pause solution"), button("Next", () => seek(cursor + 1), false, "Step forward"));
   const range = h("input", { id: "playback-range", type: "range", min: "0", max: "0", value: "0", "aria-label": "Scrub solution playback" }) as HTMLInputElement;
   range.oninput = () => seek(Number(range.value));
   const speed = h("label", { class: "field" }, ["Playback speed", h("input", { type: "range", min: "0.5", max: "2", step: "0.25", value: "1", "aria-label": "Playback speed" })]);
   (speed.querySelector("input") as HTMLInputElement).oninput = (e) => { settings.speed = Number((e.target as HTMLInputElement).value); };
-  const list = h("div", { class: "moves", id: "move-list", "aria-label": "Solution moves" });
+  const list = h("div", { class: "moves", id: "move-list", role: "group", "aria-label": "Solution moves" });
   playback.append(controls, range, speed, h("div", { id: "playback-status", class: "subtle" }, ["0 / 0 moves"]), list, h("div", { id: "solution-stages", class: "stage-notes" })); left.append(playback);
   const right = h("div", { class: "stack" });
   const actions = card("Solve a cube", "Choose a solver, then explore the returned algorithm move by move.");
   const solver = h("select", { id: "solver-select", "aria-label": "Solver" });
-  for (const s of SOLVER_LIST) solver.append(h("option", { value: s.id }, [`${s.name}${s.id.includes("2x2") ? " (2×2)" : ""}`]));
+  for (const s of SOLVER_OPTIONS) solver.append(h("option", { value: s.id }, [s.name]));
   solver.value = settings.solver; solver.onchange = () => { settings.solver = solver.value; };
   const status = h("div", { id: "solve-status", role: "status", "aria-live": "polite", class: "subtle" }, [progressText]);
   const meter = h("div", { class: "meter", id: "solve-meter", role: "progressbar", "aria-label": "Solver progress" }, [h("span")]);
-  const scramble = button("⤨ Scramble", () => {
-    const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff)); const next = sc.cube; startCube = next; solution = []; cursor = 0; setCube(next);
+  const scramble = button("Scramble", () => {
+    const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff)); const next = sc.cube; startCube = next; solution = []; solutionStages = []; cursor = 0; painterColors = cubieToFacelet(next); setCube(next);
     window.sessionStorage.setItem("cubelab-scramble", sc.alg); progressText = `Scramble: ${sc.alg}`; render();
   });
-  const solveButton = button("⚡ Solve", solveNow, true);
-  const reset = button("↺ Reset", () => { activeJob?.cancel(); activeJob = undefined; solution = []; cursor = 0; startCube = solvedCube(); setCube(solvedCube()); window.sessionStorage.removeItem("cubelab-scramble"); render(); });
+  const solveButton = button("Solve", solveNow, true);
+  const reset = button("Reset", () => { activeJob?.cancel(); activeJob = undefined; solution = []; solutionStages = []; cursor = 0; startCube = solvedCube(); painterColors = SOLVED_FACELETS.slice(); setCube(solvedCube()); window.sessionStorage.removeItem("cubelab-scramble"); render(); });
   const copyLink = button("↗ Share link", () => { updateHash(); void navigator.clipboard?.writeText(location.href).then(() => toast("Share link copied")).catch(() => toast("Copy the link from the address bar")); });
   actions.append(h("div", { class: "row" }, [solver]), h("div", { class: "row" }, [scramble, solveButton, reset, copyLink]), meter, status); right.append(actions);
   const keys = card("Keyboard moves", "Press a face key to turn clockwise; hold Shift for counter-clockwise.");
   keys.append(h("p", { class: "subtle" }, ["U · D · L · R · F · B"])); right.append(keys);
   const painter = card("Manual color painter", "Click a sticker tile to cycle its color. The center stickers stay fixed.");
-  painterColors = cubieToFacelet(cube);
   const grid = h("div", { class: "paint-net", "aria-label": "Paint cube facelets" });
   for (let f = 0; f < 6; f++) {
     const face = h("div", { class: "paint-face", "aria-label": `${FACE_NAMES[f]} face` });
@@ -168,13 +182,18 @@ function buildSolveView() {
   }
   const validity = h("p", { id: "paint-validity", class: "subtle", role: "status" }, ["Solved cube is valid"]);
   const validatePaint = () => { const v = validateFacelets(painterColors); validity.textContent = v.ok ? "✓ Valid reachable cube" : `Needs fixing: ${v.message}`; validity.className = `subtle ${v.ok ? "valid" : "invalid"}`; };
-  painter.append(grid, validity, h("div", { class: "row" }, [button("Use painted cube", () => { const v = validateFacelets(painterColors); if (!v.ok || !v.cube) { validatePaint(); return; } startCube = v.cube; setCube(v.cube); toast("Painted cube loaded"); }), button("Clear to solved", () => { painterColors = SOLVED_FACELETS.slice(); render(); })])); right.append(painter);
+  painter.append(grid, validity, h("div", { class: "row" }, [button("Use painted cube", () => { const v = validateFacelets(painterColors); if (!v.ok || !v.cube) { validatePaint(); return; } startCube = v.cube; solution = []; solutionStages = []; cursor = 0; setCube(v.cube); toast("Painted cube loaded"); }), button("Clear to solved", () => { painterColors = SOLVED_FACELETS.slice(); render(); })])); right.append(painter);
   layout.append(left, right);
   queueMicrotask(() => {
     if (!stage.isConnected) return;
-    currentView = new CubeView(stage, { reducedMotion }); currentView.setCube(cube);
-    currentView.onMove = commitTurn;
-    renderPlayback();
+    void import("./cube3d/CubeView").then(({ CubeView: LazyCubeView }) => {
+      if (!stage.isConnected) return;
+      currentView = new LazyCubeView(stage, { reducedMotion }); currentView.setCube(cube);
+      currentView.onMove = commitTurn;
+      renderPlayback();
+    }).catch((e) => {
+      stage.replaceChildren(h("p", { class: "subtle invalid", role: "alert" }, [`3D view unavailable: ${(e as Error).message}. You can still scramble, solve, and use keyboard moves.`]));
+    });
   });
   return layout;
 }
@@ -184,22 +203,26 @@ function buildRace() {
   const c = card("Solver race", "Run several implementations at once in isolated workers. First correct completion wins.");
   const checks = h("div", { class: "race-options" });
   const defaults = ["kociemba", "thistlethwaite", "beginner", "ida-pdb"];
-  for (const s of SOLVER_LIST.filter((x) => !x.id.includes("2x2"))) checks.append(h("label", {}, [h("input", { type: "checkbox", value: s.id, checked: defaults.includes(s.id) }), ` ${s.name}`]));
+  for (const s of SOLVER_OPTIONS.filter((x) => !x.id.includes("2x2"))) checks.append(h("label", {}, [h("input", { type: "checkbox", value: s.id, checked: defaults.includes(s.id) }), ` ${s.name}`]));
   const output = h("div", { id: "race-results", class: "stack" });
   c.append(checks, h("div", { class: "row" }, [button("Start race", () => {
     output.replaceChildren();
+    for (const job of raceJobs.splice(0)) job.cancel();
+    for (const timer of raceTimers.splice(0)) clearInterval(timer);
     const selected = [...checks.querySelectorAll<HTMLInputElement>("input:checked")].map((x) => x.value);
     if (selected.length < 2 || selected.length > 4) { toast("Select 2–4 solvers"); return; }
     const jobs = selected.map((id) => {
-      const row = h("div", { class: "race-row" }); const title = SOLVER_LIST.find((x) => x.id === id)!.name;
+      const row = h("div", { class: "race-row" }); const title = SOLVER_OPTIONS.find((x) => x.id === id)!.name;
       const stats = h("span", { class: "subtle" }, ["Starting…"]); const bar = h("div", { class: "meter" }, [h("span")]); row.append(h("strong", {}, [title]), stats, bar); output.append(row);
       const startedAt = performance.now(); let liveNodes = 0; let liveDepth = 0; let finished = false;
       const clock = window.setInterval(() => { if (!finished) stats.textContent = `${liveNodes.toLocaleString()} nodes${liveDepth ? ` · depth ${liveDepth}` : ""} · ${(performance.now() - startedAt).toFixed(0)} ms`; }, 250);
+      raceTimers.push(clock);
       const job = runSolve(id, cube, { timeoutMs: 30000, progressInterval: 25000 }, { onProgress: (p) => { liveNodes = p.nodesExpanded; liveDepth = p.threshold ?? p.g ?? 0; stats.textContent = `${p.nodesExpanded.toLocaleString()} nodes${p.threshold == null ? "" : ` · depth ${p.threshold}`} · ${p.phase ?? "searching"}`; (bar.firstElementChild as HTMLElement).style.width = `${Math.min(95, Math.log10(p.nodesExpanded + 1) * 15)}%`; }, onBuilding: (t) => { stats.textContent = `Building ${t}…`; } });
+      raceJobs.push(job);
       job.promise.then((r) => { finished = true; clearInterval(clock); stats.textContent = r.solved ? `${r.stats.solutionLength} moves · ${r.stats.timeMs.toFixed(0)} ms` : r.timedOut ? "Timed out" : "No solution"; (bar.firstElementChild as HTMLElement).style.width = r.solved ? "100%" : "0%"; if (r.solved && !output.dataset.winner) { output.dataset.winner = id; row.classList.add("winner"); toast(`${title} wins the race!`); } }).catch((e) => { finished = true; clearInterval(clock); stats.textContent = `Error: ${e.message}`; });
       return job;
     });
-  }), button("Race a new scramble", () => { const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff)); setCube(sc.cube); window.sessionStorage.setItem("cubelab-scramble", sc.alg); })]), output);
+  }), button("Race a new scramble", () => { const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff)); painterColors = cubieToFacelet(sc.cube); startCube = sc.cube; solution = []; solutionStages = []; cursor = 0; setCube(sc.cube); window.sessionStorage.setItem("cubelab-scramble", sc.alg); })]), output);
   return c;
 }
 function buildExplorer() {
@@ -223,17 +246,40 @@ function buildLab() {
 }
 function buildDoctor() {
   const c = card("Smart validity doctor", "Painted stickers are checked against color counts, piece inventory, orientation and parity.");
-  const feedback = h("p", { class: "subtle" }, ["The painter in Solve provides live feedback. Load a painted state to diagnose it here."]);
+  const feedback = h("p", { class: "subtle" }, ["Checking current painted stickers…"]);
   const fixes = h("ul", {});
-  const validate = () => { const v = validateFacelets(painterColors); feedback.textContent = v.ok ? "This sticker arrangement describes a reachable cube." : v.message; fixes.replaceChildren(); if (!v.ok) { const first = v.reasons[0]; fixes.append(h("li", {}, [first?.code === "BAD_COLOR_COUNT" ? "Suggested minimal fix: recolor one sticker on an over-counted face to a missing color, then validate again." : first?.code === "CORNER_TWIST" ? "Suggested fix: rotate one corner sticker set to restore the twist sum." : first?.code === "EDGE_FLIP" ? "Suggested fix: flip one edge sticker pair to restore the flip sum." : first?.code === "PERMUTATION_PARITY" ? "Suggested fix: swap two stickers on one edge or corner pair to correct parity." : "Suggested fix: inspect the reported corner or edge and restore its three/two legal colors."])); } };
+  const validate = () => {
+    const v = validateFacelets(painterColors);
+    feedback.textContent = v.ok ? "This sticker arrangement describes a reachable cube." : v.message;
+    fixes.replaceChildren();
+    if (!v.ok) {
+      const first = v.reasons[0];
+      const advice = first?.code === "BAD_COLOR_COUNT" ? "Minimal count repair: recolor one sticker from an over-counted face to a missing color." : first?.code === "CORNER_TWIST" ? "Minimal orientation repair: twist one corner's sticker set once; the total must be 0 mod 3." : first?.code === "EDGE_FLIP" ? "Minimal orientation repair: flip one edge piece; the total must be 0 mod 2." : first?.code === "PERMUTATION_PARITY" ? "Minimal parity repair: exchange two stickers for a paired edge or corner swap." : first?.code === "DUPLICATE_CORNER" ? "Piece repair: correct a sticker on one of the duplicate corners so every corner appears once." : first?.code === "DUPLICATE_EDGE" ? "Piece repair: correct a sticker on one of the duplicate edges so every edge appears once." : "Piece repair: correct one sticker in the reported corner or edge slot so it matches a real piece.";
+      fixes.append(h("li", {}, [advice]));
+      if (first?.code === "BAD_COLOR_COUNT") {
+        const counts = v.reasons.filter((r) => r.code === "BAD_COLOR_COUNT");
+        const over = counts.find((r) => r.count > 9);
+        const under = counts.find((r) => r.count < 9);
+        const from = over ? FACE_NAMES.indexOf(over.color as typeof FACE_NAMES[number]) : -1;
+        const to = under ? FACE_NAMES.indexOf(under.color as typeof FACE_NAMES[number]) : -1;
+        const at = from >= 0 ? Array.from({ length: 9 }, (_, i) => from * 9 + i).find((i) => i % 9 !== 4 && painterColors[i] === from) : undefined;
+        if (at !== undefined && under && to >= 0) fixes.append(h("li", {}, [button(`Apply one-sticker fix: ${over!.color} → ${under.color}`, () => { painterColors[at] = to as Face; validate(); toast("Applied one-sticker count correction"); })]));
+      }
+    }
+  };
   c.append(feedback, fixes, button("Check current painted state", validate));
+  queueMicrotask(validate);
   return c;
 }
 function buildLearn() {
   const c = card("Learn / hint mode", "Reveal one move at a time, with an explanation from the solver's named stages when available.");
   const info = h("p", { class: "subtle", id: "learn-hint" }, ["Solve first, then request the next hint."]);
-  let step = 0;
-  c.append(info, h("div", { class: "row" }, [button("Solve for hints", solveNow), button("Show next move", () => { if (!solution.length) { info.textContent = "No solution loaded yet. Solve this cube first."; return; } step = Math.min(step + 1, solution.length); info.textContent = `Hint ${step}/${solution.length}: turn ${MOVES[solution[step - 1]!]!.name}. Try it, then reveal the next move.`; }), button("Try this move", () => { if (step) commitTurn(MOVES[solution[step - 1]!]!.face, MOVES[solution[step - 1]!]!.power); })]));
+  learnHint = info;
+  const faces = h("div", { class: "row", "aria-label": "Try a face turn" });
+  for (const f of [Face.U, Face.D, Face.L, Face.R, Face.F, Face.B]) {
+    faces.append(button(FACE_NAMES[f], () => commitTurn(f, 1), false, `Try ${FACE_NAMES[f]} clockwise`), button(`${FACE_NAMES[f]}'`, () => commitTurn(f, 3), false, `Try ${FACE_NAMES[f]} counter-clockwise`));
+  }
+  c.append(info, h("div", { class: "row" }, [button("Solve for hints", () => { learnStep = 0; solveNow(); }), button("Reveal expected move", () => { if (!solution.length) { info.textContent = "No solution loaded yet. Solve this cube first."; return; } info.textContent = `Hint ${learnStep + 1}/${solution.length}: try ${MOVES[solution[learnStep]!]!.name} using the keyboard or face buttons.`; })]), faces);
   return c;
 }
 function buildBench() {
@@ -254,8 +300,15 @@ function buildScannerView() {
 function render() {
   activeJob?.cancel(); activeJob = undefined;
   currentView?.dispose();
+  currentView = undefined;
+  for (const job of raceJobs.splice(0)) job.cancel();
+  for (const timer of raceTimers.splice(0)) clearInterval(timer);
   tabs.querySelectorAll("[role=tab]").forEach((t, i) => t.setAttribute("aria-selected", tabNames[i]![0] === activeTab ? "true" : "false"));
   content.replaceChildren();
+  if (!localStorage.getItem("cubelab-onboarded")) {
+    const welcome = h("section", { class: "card onboarding" }, [h("h2", {}, ["Welcome to CubeLab"]), h("p", { class: "subtle" }, ["Scramble or paint a cube, choose a solver, then inspect every move. Keyboard: U D L R F B; hold Shift for the inverse. Use the tabs to explore solver internals and the camera scanner."]), button("Got it", () => { localStorage.setItem("cubelab-onboarded", "yes"); welcome.remove(); })]);
+    content.append(welcome);
+  }
   const views: Record<string, () => HTMLElement> = { solve: buildSolveView, race: buildRace, explorer: buildExplorer, lab: buildLab, doctor: buildDoctor, learn: buildLearn, scanner: buildScannerView, bench: buildBench };
   content.append(views[activeTab]!());
 }
@@ -269,7 +322,7 @@ window.addEventListener("keydown", (e) => {
 const params = new URLSearchParams(location.hash.slice(1));
 const initialAlg = params.get("s");
 if (initialAlg && initialAlg !== "random state") {
-    try { const names = initialAlg.trim().split(/\s+/).filter(Boolean); let c = solvedCube(); for (const name of names) { const i = MOVES.findIndex((m) => m.name === name); if (i < 0) throw Error("bad move"); c = applyMoveIndex(c, i); } cube = c; startCube = c; }
+    try { const names = initialAlg.trim().split(/\s+/).filter(Boolean); let c = solvedCube(); for (const name of names) { const i = MOVES.findIndex((m) => m.name === name); if (i < 0) throw Error("bad move"); c = applyMoveIndex(c, i); } cube = c; startCube = c; painterColors = cubieToFacelet(c); }
   catch { toast("Shared cube link was not valid; loaded solved cube."); }
 }
 const initialSolution = params.get("a");
