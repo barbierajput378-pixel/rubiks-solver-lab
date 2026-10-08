@@ -11,6 +11,7 @@
  */
 
 import * as THREE from "three";
+import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import {
   Face,
   SOLVED_FACELETS,
@@ -72,6 +73,10 @@ export class CubeView {
   private animationFrame = 0;
   private readonly resizeBound = () => this.resize();
   private animMs: number;
+  // idle auto-drift: a gentle rotation when the user is not interacting
+  private interacting = false;
+  private lastInteract = 0;
+  private lastFrame = 0;
   reducedMotion: boolean;
   onMove?: (face: Face, power: 1 | 2 | 3) => void;
 
@@ -82,22 +87,31 @@ export class CubeView {
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
     this.renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.08;
     el.appendChild(this.renderer.domElement);
 
     this.scene = new THREE.Scene();
-    this.camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
-    this.camera.position.set(4.6, 4.2, 5.8);
+    // Framing: large enough to read as the hero specimen, with margin so it never clips.
+    this.camera = new THREE.PerspectiveCamera(37, 1, 0.1, 100);
+    this.camera.position.set(4.6, 4.3, 5.8);
     this.camera.lookAt(0, 0, 0);
 
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.75));
-    const key1 = new THREE.DirectionalLight(0xffffff, 1.1);
-    key1.position.set(6, 10, 8);
-    this.scene.add(key1);
-    const key2 = new THREE.DirectionalLight(0x9ab6ff, 0.4);
-    key2.position.set(-8, -4, -6);
-    this.scene.add(key2);
+    // Studio three-point rig: soft ambient + hemisphere fill, a bright key,
+    // a cool fill, and a rim light that catches the cube's edges.
+    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    this.scene.add(new THREE.HemisphereLight(0xdfe9ff, 0x0a0d12, 0.55));
+    const key = new THREE.DirectionalLight(0xffffff, 1.55);
+    key.position.set(5, 9, 7);
+    this.scene.add(key);
+    const fill = new THREE.DirectionalLight(0x9ab6ff, 0.45);
+    fill.position.set(-7, -2, -5);
+    this.scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xbfefe6, 0.7);
+    rim.position.set(-4, 5, -8);
+    this.scene.add(rim);
 
-    this.root.rotation.set(-0.12, 0.6, 0);
+    this.root.rotation.set(-0.16, 0.62, 0);
     this.scene.add(this.root);
 
     this.readThemeColors();
@@ -114,7 +128,14 @@ export class CubeView {
     const cs = getComputedStyle(document.documentElement);
     const names = ["--cube-U", "--cube-R", "--cube-F", "--cube-D", "--cube-L", "--cube-B"];
     this.faceColors = names.map((n) => new THREE.Color(cs.getPropertyValue(n).trim() || "#888"));
-    for (const s of this.stickers) s.mat.color.copy(this.faceColors[this.facelets[s.facelet]!]!);
+    this.recolor();
+  }
+
+  /** Apply the logical color (plus a faint self-glow so stickers stay vivid in the dark). */
+  private paintSticker(s: Sticker) {
+    const c = this.faceColors[this.facelets[s.facelet]!]!;
+    s.mat.color.copy(c);
+    s.mat.emissive.copy(c).multiplyScalar(0.08);
   }
 
   private buildCubies() {
@@ -132,9 +153,9 @@ export class CubeView {
       }
     }
 
-    const cubieGeo = new THREE.BoxGeometry(0.96, 0.96, 0.96);
-    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0a0b0e, roughness: 0.55, metalness: 0.1 });
-    const stickerGeo = new THREE.PlaneGeometry(0.82, 0.82);
+    const cubieGeo = new RoundedBoxGeometry(0.96, 0.96, 0.96, 4, 0.08);
+    const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0c0e13, roughness: 0.42, metalness: 0.2 });
+    const stickerGeo = new THREE.PlaneGeometry(0.8, 0.8);
 
     for (let x = -1; x <= 1; x++) {
       for (let y = -1; y <= 1; y++) {
@@ -155,7 +176,7 @@ export class CubeView {
             nrm[fc.axis] = fc.sign;
             const facelet = faceletByKey.get(key(pos, nrm));
             if (facelet === undefined) continue;
-            const mat = new THREE.MeshStandardMaterial({ roughness: 0.42, metalness: 0.0 });
+            const mat = new THREE.MeshStandardMaterial({ roughness: 0.32, metalness: 0.0 });
             const sticker = new THREE.Mesh(stickerGeo, mat);
             // place on the cube face, slightly proud
             sticker.position.set((nrm[0] ?? 0) * 0.49, (nrm[1] ?? 0) * 0.49, (nrm[2] ?? 0) * 0.49);
@@ -173,7 +194,7 @@ export class CubeView {
   }
 
   private recolor() {
-    for (const s of this.stickers) s.mat.color.copy(this.faceColors[this.facelets[s.facelet]!]!);
+    for (const s of this.stickers) this.paintSticker(s);
   }
 
   /** Set the whole cube from an engine cube state (no animation). */
@@ -270,6 +291,8 @@ export class CubeView {
     };
     const down = (e: PointerEvent) => {
       dragging = true;
+      this.interacting = true;
+      this.lastInteract = performance.now();
       lastX = e.clientX;
       lastY = e.clientY;
       facelet = hitSticker(e);
@@ -292,6 +315,7 @@ export class CubeView {
           this.onMove?.(face, power);
         }
       } else if (!faceDrag) {
+        this.lastInteract = performance.now();
         this.root.rotation.y += dx * 0.01;
         this.root.rotation.x += dy * 0.01;
         this.root.rotation.x = Math.max(-1.3, Math.min(1.3, this.root.rotation.x));
@@ -299,6 +323,8 @@ export class CubeView {
     };
     const up = (e: PointerEvent) => {
       dragging = false;
+      this.interacting = false;
+      this.lastInteract = performance.now();
       try {
         el.releasePointerCapture(e.pointerId);
       } catch {
@@ -313,14 +339,21 @@ export class CubeView {
 
   private resize() {
     const r = this.el.getBoundingClientRect();
-    const size = Math.max(1, Math.min(r.width, r.height));
-    this.renderer.setSize(size, size, false);
-    this.camera.aspect = 1;
+    const w = Math.max(1, r.width);
+    const hgt = Math.max(1, r.height);
+    this.renderer.setSize(w, hgt, false);
+    this.camera.aspect = w / hgt;
     this.camera.updateProjectionMatrix();
   }
 
-  private loop = () => {
+  private loop = (now: number = performance.now()) => {
     if (this.disposed) return;
+    // Gentle idle drift once the user has been still for a moment; off under reduced motion.
+    if (!this.reducedMotion && !this.animating && !this.interacting && now - this.lastInteract > 1200) {
+      const dt = this.lastFrame ? Math.min(50, now - this.lastFrame) : 16;
+      this.root.rotation.y += dt * 0.00018;
+    }
+    this.lastFrame = now;
     this.renderer.render(this.scene, this.camera);
     this.animationFrame = requestAnimationFrame(this.loop);
   };

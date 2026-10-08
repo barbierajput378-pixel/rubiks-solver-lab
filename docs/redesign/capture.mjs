@@ -46,9 +46,11 @@ async function shoot(ctx, url, file, { onboard }) {
     },
     [theme, onboard],
   );
-  await page.goto(url, { waitUntil: "networkidle" });
+  // `domcontentloaded` (not networkidle/load) — the Vite dev server keeps an HMR
+  // socket open and lazy chunks can keep `load` pending.
+  await page.goto(url, { waitUntil: "domcontentloaded", timeout: 30000 });
   // Give three.js a moment to build + render the first frames.
-  await page.waitForTimeout(1200);
+  await page.waitForTimeout(1800);
   await page.screenshot({ path: file, animations: "disabled" });
   await page.close();
 }

@@ -1050,6 +1050,203 @@ kbd {
 .view {
   display: block;
 }
+.col {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+/* ---- segmented control ---- */
+.seg {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  background: var(--bg-elev-3);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: inset 0 0 0 1px var(--border);
+}
+.seg-btn {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font: 500 var(--fs-sm) / 1 var(--mono);
+  font-variant-numeric: tabular-nums;
+  padding: 6px 10px;
+  border-radius: var(--r-xs);
+  cursor: pointer;
+  transition: color var(--dur-2) var(--ease), background var(--dur-2) var(--ease);
+}
+.seg-btn:hover {
+  color: var(--text);
+}
+.seg-btn.active {
+  background: var(--bg-elev-1);
+  color: var(--text);
+  box-shadow: var(--inset-hi), var(--e1);
+}
+.seg-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* ---- solve: hero stage ---- */
+.stage-hero .stage {
+  aspect-ratio: 5 / 4;
+  min-height: 360px;
+  max-height: 540px;
+}
+.stage-hud {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 2;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 7px 11px;
+  background: var(--surface-glass-strong);
+  backdrop-filter: blur(10px) saturate(140%);
+  -webkit-backdrop-filter: blur(10px) saturate(140%);
+  border: 1px solid var(--border);
+  border-radius: var(--r-sm);
+  box-shadow: var(--e1), var(--inset-hi);
+  pointer-events: none;
+}
+.hud-k {
+  font: 600 9.5px / 1 var(--mono);
+  letter-spacing: 0.18em;
+  color: var(--text-faint);
+}
+.hud-v {
+  font: 600 var(--fs-body) / 1 var(--mono);
+  color: var(--accent);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---- solve: playback bar ---- */
+.playback-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-lg);
+  padding: var(--space-sm);
+  background: var(--bg-elev-2);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  box-shadow: var(--inset-hi);
+}
+.transport {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.btn.play {
+  width: 40px;
+  height: 40px;
+}
+.scrub {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  min-width: 0;
+}
+.scrub input[type="range"] {
+  flex: 1;
+}
+.playback-count {
+  font: 500 var(--fs-sm) / 1 var(--mono);
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.moves.strip {
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  padding: var(--space-md) 2px 4px;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border-strong) transparent;
+}
+.moves.strip:empty {
+  display: none;
+}
+.moves.strip::-webkit-scrollbar {
+  height: 6px;
+}
+.moves.strip::-webkit-scrollbar-thumb {
+  background: var(--border-strong);
+  border-radius: var(--r-pill);
+}
+.readout {
+  font-family: var(--mono);
+  font-size: var(--fs-sm);
+  font-variant-numeric: tabular-nums;
+}
+#solve-meter {
+  margin-top: var(--space-xs);
+}
+
+/* ---- solve: keyboard card ---- */
+.key-row {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.hint-inline {
+  margin: var(--space-md) 0 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* ---- solve: mobile bottom-sheet action bar ---- */
+.mobile-actions {
+  display: none;
+}
+@media (max-width: 760px) {
+  .mobile-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--z-sticky);
+    padding: 8px 12px calc(10px + env(safe-area-inset-bottom));
+    background: var(--surface-glass-strong);
+    backdrop-filter: blur(16px) saturate(140%);
+    -webkit-backdrop-filter: blur(16px) saturate(140%);
+    border-top: 1px solid var(--border-strong);
+    box-shadow: 0 -10px 30px rgba(3, 6, 10, 0.4);
+  }
+  .mobile-actions .grab {
+    width: 36px;
+    height: 4px;
+    border-radius: var(--r-pill);
+    background: var(--border-strong);
+    margin: 0 auto;
+  }
+  .mobile-actions-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+  }
+  .mobile-actions-row .btn.icon {
+    flex: 0 0 auto;
+  }
+  .mobile-actions-row .btn:not(.icon) {
+    flex: 1 1 auto;
+  }
+  .solve-layout {
+    padding-bottom: 76px;
+  }
+  .stage-hero .stage {
+    min-height: 340px;
+  }
+}
 
 /* ---- entrance motion ---- */
 @keyframes rise-in {

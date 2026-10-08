@@ -93,9 +93,11 @@ CSS only. Art direction, audit and token spec live in `docs/redesign/` and `DESI
       JetBrains Mono; new top bar (brand mark, styled theme/palette toggles, keyboard-shortcut
       popover, `?`), segmented nav, consistent per-view page headers with instrument rails. Fixed
       the always-full progress-meter bug.
-- [ ] **Step 4 — Solve view.** Cube as hero (key/rim/ambient light, ground shadow, glow, idle
-      drift that stops under reduced-motion); floating glass control panels; polished playback
-      bar + move chips; mobile bottom-sheet.
+- [x] **Step 4 — Solve view.** Cube hero: three-point lighting (key/fill/rim + hemisphere), ACES
+      tone mapping, rounded cubies, self-lit vivid stickers, CSS ground shadow, idle auto-drift
+      (off under reduced-motion), aspect-correct renderer + capped stage. Floating STATE/READY HUD,
+      polished playback bar (icon transport, scrubber, segmented speed), auto-scrolling move strip,
+      icon action buttons, kbd-chip keyboard card, mobile bottom-sheet action bar.
 - [ ] **Step 5 — Other views.** Race (identities, animated bars, winner moment), Explorer + Bench
       charts (axes, gridlines, tooltips, solver colors), Scanner overlay + confidence + denied
       state, Lab, Doctor, Learn. Empty/loading/error states everywhere.

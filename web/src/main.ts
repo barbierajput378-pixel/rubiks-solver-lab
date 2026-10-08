@@ -184,9 +184,13 @@ function renderPlayback() {
   if (!moves) return;
   moves.replaceChildren(...solution.map((idx, i) => h("button", { class: `move-chip${i === cursor ? " current" : i < cursor ? " done" : ""}`, "aria-label": `Move ${i + 1}: ${MOVES[idx]!.name}` }, [MOVES[idx]!.name])));
   [...moves.children].forEach((e, i) => { e.addEventListener("click", () => seek(i)); });
+  const current = moves.querySelector<HTMLElement>(".move-chip.current");
+  if (current) moves.scrollTo({ left: current.offsetLeft - moves.clientWidth / 2 + current.offsetWidth / 2, behavior: reducedMotion ? "auto" : "smooth" });
   const slider = document.querySelector<HTMLInputElement>("#playback-range");
-  if (slider) { slider.max = String(solution.length); slider.value = String(cursor); }
-  if (label) label.textContent = `${cursor} / ${solution.length} moves`;
+  if (slider) { slider.max = String(solution.length); slider.value = String(cursor); slider.setAttribute("aria-valuenow", String(cursor)); }
+  if (label) label.textContent = `${cursor} / ${solution.length}`;
+  const hud = document.querySelector<HTMLElement>("#stage-hud-v");
+  if (hud) hud.textContent = !solution.length ? (window.sessionStorage.getItem("cubelab-scramble") ? "SCRAMBLED" : "READY") : cursor >= solution.length ? "SOLVED" : MOVES[solution[cursor]!]!.name;
   if (stages) { let offset = 0; stages.replaceChildren(...solutionStages.map((s, i) => { const begin = offset; offset += s.moves.length; const active = cursor >= begin && (cursor < offset || (i === solutionStages.length - 1 && cursor === solution.length)); return h("div", { class: `stage-note${active ? " active" : ""}` }, [h("strong", {}, [s.label]), h("span", {}, [s.explanation])]); })); }
 }
 function seek(n: number) {
@@ -195,38 +199,88 @@ function seek(n: number) {
   for (let i = 0; i < cursor; i++) c = applyMoveIndex(c, solution[i]!);
   cube = c; currentView?.setCube(cube); renderPlayback();
 }
+function scrambleCube() {
+  const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff));
+  const next = sc.cube; startCube = next; solution = []; solutionStages = []; cursor = 0;
+  painterColors = cubieToFacelet(next); setCube(next);
+  window.sessionStorage.setItem("cubelab-scramble", sc.alg); progressText = `Scramble: ${sc.alg}`; render();
+}
+function resetCube() {
+  activeJob?.cancel(); activeJob = undefined; solution = []; solutionStages = []; cursor = 0;
+  startCube = solvedCube(); painterColors = SOLVED_FACELETS.slice(); setCube(solvedCube());
+  window.sessionStorage.removeItem("cubelab-scramble"); render();
+}
+function shareLink() {
+  updateHash();
+  void navigator.clipboard?.writeText(location.href).then(() => toast("Share link copied")).catch(() => toast("Copy the link from the address bar"));
+}
+const iconBtn = (ico: string, aria: string, fn: () => void, cls = "btn ghost icon") => {
+  const b = h("button", { class: cls, type: "button", "aria-label": aria }, [icon(ico)]);
+  b.onclick = fn; return b;
+};
+const labelIconBtn = (ico: string, label: string, fn: () => void, primary = false) => {
+  const b = h("button", { class: `btn${primary ? " primary" : ""}`, type: "button", "aria-label": label }, [icon(ico), h("span", {}, [label])]);
+  b.onclick = fn; return b;
+};
+function setPlayIcon(btn: HTMLElement) { btn.replaceChildren(icon(playTimer ? ICONS.pause : ICONS.play)); }
 function buildSolveView() {
-  const layout = h("div", { class: "layout" });
+  const layout = h("div", { class: "layout solve-layout" });
+
+  // ---- hero: the cube as a lit specimen ----
   const left = h("div", { class: "stack" });
-  const stageCard = card("Cube", "Drag the background to orbit · U D L R F B keys turn faces · Shift reverses");
+  const hero = h("section", { class: "card stage-hero" });
   const stage = h("div", { class: "stage", role: "application", "aria-label": "Interactive 3D Rubik's Cube" });
-  stageCard.append(stage); left.append(stageCard);
-  const playback = card("Solution playback", "Scrub or select a move to inspect the solution.");
-  const controls = h("div", { class: "row" });
-  controls.append(button("Back", () => seek(cursor - 1), false, "Step back"), button("Play / pause", () => { if (playTimer) { clearInterval(playTimer); playTimer = undefined; } else playTimer = window.setInterval(() => { if (cursor >= solution.length) { clearInterval(playTimer); playTimer = undefined; return; } seek(cursor + 1); }, 650 / settings.speed); }, false, "Play or pause solution"), button("Next", () => seek(cursor + 1), false, "Step forward"));
+  stage.append(
+    h("div", { class: "stage-hud" }, [h("span", { class: "hud-k" }, ["STATE"]), h("span", { class: "hud-v", id: "stage-hud-v" }, ["READY"])]),
+    h("div", { class: "hint" }, ["Drag to orbit · drag a sticker to turn · U D L R F B keys"]),
+  );
+  hero.append(stage);
+
+  // transport (play buttons declared first so the closures below can update both)
+  const playBtn = h("button", { class: "btn primary icon play", type: "button", "aria-label": "Play or pause solution" }, [icon(ICONS.play)]);
+  const mPlayBtn = h("button", { class: "btn primary icon play", type: "button", "aria-label": "Play or pause solution" }, [icon(ICONS.play)]);
+  const stopPlay = () => { if (playTimer) { clearInterval(playTimer); playTimer = undefined; } setPlayIcon(playBtn); setPlayIcon(mPlayBtn); };
+  const startPlay = () => { stopPlay(); playTimer = window.setInterval(() => { if (cursor >= solution.length) { stopPlay(); return; } seek(cursor + 1); }, 650 / settings.speed); setPlayIcon(playBtn); setPlayIcon(mPlayBtn); };
+  const togglePlay = () => { if (!solution.length) { toast("Solve a cube first"); return; } playTimer ? stopPlay() : startPlay(); };
+  playBtn.onclick = togglePlay;
+  mPlayBtn.onclick = togglePlay;
+  const transport = h("div", { class: "transport" }, [
+    iconBtn(ICONS.prev, "Step back", () => seek(cursor - 1)), playBtn, iconBtn(ICONS.next, "Step forward", () => seek(cursor + 1)),
+  ]);
   const range = h("input", { id: "playback-range", type: "range", min: "0", max: "0", value: "0", "aria-label": "Scrub solution playback" }) as HTMLInputElement;
   range.oninput = () => seek(Number(range.value));
-  const speed = h("label", { class: "field" }, ["Playback speed", h("input", { type: "range", min: "0.5", max: "2", step: "0.25", value: "1", "aria-label": "Playback speed" })]);
-  (speed.querySelector("input") as HTMLInputElement).oninput = (e) => { settings.speed = Number((e.target as HTMLInputElement).value); };
-  const list = h("div", { class: "moves", id: "move-list", role: "group", "aria-label": "Solution moves" });
-  playback.append(controls, range, speed, h("div", { id: "playback-status", class: "subtle" }, ["0 / 0 moves"]), list, h("div", { id: "solution-stages", class: "stage-notes" })); left.append(playback);
+  const counter = h("div", { id: "playback-status", class: "playback-count" }, ["0 / 0"]);
+  const speedSeg = h("div", { class: "seg", role: "group", "aria-label": "Playback speed" });
+  for (const v of [0.5, 1, 1.5, 2]) {
+    const b = h("button", { class: `seg-btn${v === settings.speed ? " active" : ""}`, type: "button", "aria-pressed": String(v === settings.speed) }, [`${v}×`]);
+    b.onclick = () => { settings.speed = v; [...speedSeg.children].forEach((c) => { const on = c === b; c.classList.toggle("active", on); c.setAttribute("aria-pressed", String(on)); }); if (playTimer) startPlay(); };
+    speedSeg.append(b);
+  }
+  const playbackBar = h("div", { class: "playback-bar" }, [transport, h("div", { class: "scrub" }, [range, counter]), speedSeg]);
+  const list = h("div", { class: "moves strip", id: "move-list", role: "group", "aria-label": "Solution moves" });
+  hero.append(playbackBar, list, h("div", { id: "solution-stages", class: "stage-notes" }));
+  left.append(hero);
+
+  // ---- right rail: controls float in glass panels ----
   const right = h("div", { class: "stack" });
   const actions = card("Solve a cube", "Choose a solver, then explore the returned algorithm move by move.");
   const solver = h("select", { id: "solver-select", "aria-label": "Solver" });
   for (const s of SOLVER_OPTIONS) solver.append(h("option", { value: s.id }, [s.name]));
   solver.value = settings.solver; solver.onchange = () => { settings.solver = solver.value; };
-  const status = h("div", { id: "solve-status", role: "status", "aria-live": "polite", class: "subtle" }, [progressText]);
+  const status = h("div", { id: "solve-status", role: "status", "aria-live": "polite", class: "subtle readout" }, [progressText]);
   const meter = h("div", { class: "meter", id: "solve-meter", role: "progressbar", "aria-label": "Solver progress" }, [h("span")]);
-  const scramble = button("Scramble", () => {
-    const sc = randomScramble(20, Math.floor(Math.random() * 0xffffffff)); const next = sc.cube; startCube = next; solution = []; solutionStages = []; cursor = 0; painterColors = cubieToFacelet(next); setCube(next);
-    window.sessionStorage.setItem("cubelab-scramble", sc.alg); progressText = `Scramble: ${sc.alg}`; render();
-  });
-  const solveButton = button("Solve", solveNow, true);
-  const reset = button("Reset", () => { activeJob?.cancel(); activeJob = undefined; solution = []; solutionStages = []; cursor = 0; startCube = solvedCube(); painterColors = SOLVED_FACELETS.slice(); setCube(solvedCube()); window.sessionStorage.removeItem("cubelab-scramble"); render(); });
-  const copyLink = button("↗ Share link", () => { updateHash(); void navigator.clipboard?.writeText(location.href).then(() => toast("Share link copied")).catch(() => toast("Copy the link from the address bar")); });
-  actions.append(h("div", { class: "row" }, [solver]), h("div", { class: "row" }, [scramble, solveButton, reset, copyLink]), meter, status); right.append(actions);
-  const keys = card("Keyboard moves", "Press a face key to turn clockwise; hold Shift for counter-clockwise.");
-  keys.append(h("p", { class: "subtle" }, ["U · D · L · R · F · B"])); right.append(keys);
+  const scramble = labelIconBtn(ICONS.shuffle, "Scramble", scrambleCube);
+  const solveButton = labelIconBtn(ICONS.bolt, "Solve", solveNow, true);
+  const reset = labelIconBtn(ICONS.reset, "Reset", resetCube);
+  const copyLink = labelIconBtn(ICONS.link, "Share link", shareLink);
+  actions.append(h("div", { class: "col" }, [h("label", { class: "field" }, ["Solver", solver]), h("div", { class: "row" }, [scramble, solveButton, reset, copyLink]), meter, status]));
+  right.append(actions);
+
+  const keys = card("Keyboard", "Turn faces from the keyboard — hold Shift to reverse.");
+  const keyRow = h("div", { class: "key-row" }, [...["U", "D", "L", "R", "F", "B"].map((k) => h("kbd", {}, [k]))]);
+  keys.append(keyRow, h("p", { class: "subtle hint-inline" }, ["Press ", h("kbd", {}, ["?"]), " for all shortcuts."]));
+  right.append(keys);
+
   const painter = card("Manual color painter", "Click a sticker tile to cycle its color. The center stickers stay fixed.");
   const grid = h("div", { class: "paint-net", "aria-label": "Paint cube facelets" });
   for (let f = 0; f < 6; f++) {
@@ -243,7 +297,19 @@ function buildSolveView() {
   const validity = h("p", { id: "paint-validity", class: "subtle", role: "status" }, ["Solved cube is valid"]);
   const validatePaint = () => { const v = validateFacelets(painterColors); validity.textContent = v.ok ? "✓ Valid reachable cube" : `Needs fixing: ${v.message}`; validity.className = `subtle ${v.ok ? "valid" : "invalid"}`; };
   painter.append(grid, validity, h("div", { class: "row" }, [button("Use painted cube", () => { const v = validateFacelets(painterColors); if (!v.ok || !v.cube) { validatePaint(); return; } startCube = v.cube; solution = []; solutionStages = []; cursor = 0; setCube(v.cube); toast("Painted cube loaded"); }), button("Clear to solved", () => { painterColors = SOLVED_FACELETS.slice(); render(); })])); right.append(painter);
-  layout.append(left, right);
+
+  // ---- mobile bottom-sheet action bar (shown only < 760px) ----
+  const mobileBar = h("div", { class: "mobile-actions", "aria-label": "Quick actions" }, [
+    h("div", { class: "grab", "aria-hidden": "true" }),
+    h("div", { class: "mobile-actions-row" }, [
+      iconBtn(ICONS.prev, "Step back", () => seek(cursor - 1)),
+      mPlayBtn,
+      iconBtn(ICONS.next, "Step forward", () => seek(cursor + 1)),
+      labelIconBtn(ICONS.shuffle, "Scramble", scrambleCube),
+      labelIconBtn(ICONS.bolt, "Solve", solveNow, true),
+    ]),
+  ]);
+  layout.append(left, right, mobileBar);
   queueMicrotask(() => {
     if (!stage.isConnected) return;
     void import("./cube3d/CubeView").then(({ CubeView: LazyCubeView }) => {
