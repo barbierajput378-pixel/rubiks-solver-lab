@@ -23,6 +23,8 @@ export {
   optimalSolver,
   buildOptimalTables,
   makeHeuristic,
+  exportOptimalTables,
+  importOptimalTables,
   type HeuristicConfig,
   type PdbBuildProgress,
 } from "./optimal.js";

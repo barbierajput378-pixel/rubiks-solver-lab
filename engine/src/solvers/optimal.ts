@@ -51,6 +51,18 @@ export function _resetOptimalTables(): void {
   eoPdb = null;
 }
 
+/** Read-only table snapshots for persistent browser caching. */
+export function exportOptimalTables(): { corners: Uint8Array; edgeOrientation: Uint8Array } | null {
+  return cornerPdb && eoPdb ? { corners: cornerPdb, edgeOrientation: eoPdb } : null;
+}
+/** Install verified-size table snapshots loaded from a local cache. */
+export function importOptimalTables(tables: { corners: Uint8Array; edgeOrientation: Uint8Array }): boolean {
+  if (tables.corners.length !== 40320 * 2187 || tables.edgeOrientation.length !== 2048) return false;
+  cornerPdb = tables.corners;
+  eoPdb = tables.edgeOrientation;
+  return true;
+}
+
 /** Heuristic toggles for the Heuristic Lab. */
 export interface HeuristicConfig {
   corners?: boolean;
@@ -78,7 +90,7 @@ export function makeHeuristic(config: HeuristicConfig = { corners: true, edgeOri
 }
 
 export function solveOptimal(cube: CubieCube, opts?: SolveOptions): SolveResult {
-  const h = makeHeuristic({ corners: true, edgeOrientation: true });
+  const h = makeHeuristic(opts?.heuristic ?? { corners: true, edgeOrientation: true });
   return idaStar(cube, h, opts, { name: "IDA* (corner PDB + EO)", heuristicName: "max(corners, edge-orientation)" });
 }
 

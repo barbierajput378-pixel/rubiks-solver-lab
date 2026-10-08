@@ -1,0 +1,74 @@
+/* CubeLab design tokens — dark-first, Linear/Raycast-inspired. See docs/RESEARCH.md. */
+
+:root {
+  /* Accent */
+  --accent: #6ea8fe;
+  --accent-strong: #4d8bfd;
+  --accent-contrast: #0b1020;
+
+  /* Cube face colors (default scheme) */
+  --cube-U: #f8f8f8;
+  --cube-R: #c8102e;
+  --cube-F: #009b48;
+  --cube-D: #ffd500;
+  --cube-L: #ff5800;
+  --cube-B: #0046ad;
+
+  /* semantic */
+  --ok: #51cf66;
+  --warn: #ffd43b;
+  --bad: #ff6b6b;
+
+  --radius: 14px;
+  --radius-sm: 9px;
+  --gap: 16px;
+  --font: "Inter", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --transition: 160ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Dark theme (default) */
+:root,
+:root[data-theme="dark"] {
+  --bg: #0a0c10;
+  --bg-elev-1: #0f1218;
+  --bg-elev-2: #151a22;
+  --bg-elev-3: #1b212b;
+  --surface-glass: rgba(21, 26, 34, 0.72);
+  --text: #e6edf3;
+  --text-dim: #9aa7b4;
+  --text-faint: #65717d;
+  --border: rgba(255, 255, 255, 0.08);
+  --border-strong: rgba(255, 255, 255, 0.14);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.36);
+  --shadow-lg: 0 2px 4px rgba(0, 0, 0, 0.5), 0 16px 48px rgba(0, 0, 0, 0.5);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+/* Light theme */
+:root[data-theme="light"] {
+  --bg: #f6f8fb;
+  --bg-elev-1: #ffffff;
+  --bg-elev-2: #ffffff;
+  --bg-elev-3: #f0f3f8;
+  --surface-glass: rgba(255, 255, 255, 0.78);
+  --text: #0e1116;
+  --text-dim: #51606e;
+  --text-faint: #8a97a4;
+  --border: rgba(10, 15, 25, 0.1);
+  --border-strong: rgba(10, 15, 25, 0.18);
+  --shadow: 0 1px 2px rgba(10, 20, 40, 0.06), 0 8px 24px rgba(10, 20, 40, 0.1);
+  --shadow-lg: 0 2px 4px rgba(10, 20, 40, 0.08), 0 16px 48px rgba(10, 20, 40, 0.14);
+  --inset-hi: inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  --accent-contrast: #ffffff;
+}
+
+/* Colorblind-safe cube palette (Okabe-Ito-derived, distinct in luminance+hue) */
+:root[data-cb="on"] {
+  --cube-U: #ffffff;
+  --cube-R: #d55e00; /* vermilion */
+  --cube-F: #009e73; /* bluish green */
+  --cube-D: #f0e442; /* yellow */
+  --cube-L: #cc79a7; /* reddish purple (replaces orange) */
+  --cube-B: #0072b2; /* blue */
+}

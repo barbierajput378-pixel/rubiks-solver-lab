@@ -48,9 +48,10 @@ LICENSE     MIT
       + ✅ admissibility verified vs BFS true distances at small depths.
 - [x] **Phase 3 — Benchmark engine.** `cubelab-bench` CLI (JSON+CSV), honest depth caps,
       plots into `docs/benchmarks/`, `docs/BENCHMARK_ANALYSIS.md`. Commit.
-- [ ] **Phase 4 — Web app.** three.js 3D cube (view drag, face turn, keys), scramble/solve/
+- [x] **Phase 4 — Web app.** three.js 3D cube (view drag, face turn, keys), scramble/solve/
       reset, move-by-move playback + timeline, manual color painter w/ live validity,
-      shareable URL encoding. Dark/light, responsive, a11y. Commit.
+      shareable URL encoding. Dark/light, responsive, a11y, web-worker solving and IndexedDB
+      optimal-table cache. ✅ Core UI plus first lab views. Build and 43 tests pass.
 - [ ] **Phase 5 — Unique features.** Race Mode, Search Explorer, Heuristic Lab, Validity
       Doctor, Explainable Solution, Learn/Hint Mode, camera scanner (getUserMedia + HSV/Lab
       + calibration + confidence + fallbacks), in-app benchmark dashboard. Commit.

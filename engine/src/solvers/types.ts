@@ -48,6 +48,8 @@ export interface SolveOptions {
   onProgress?: (p: SolverProgress) => void;
   /** How many nodes between progress emits / cancel checks. */
   progressInterval?: number;
+  /** Optional admissible IDA* heuristic ablation used by the Heuristic Lab. */
+  heuristic?: { corners?: boolean; edgeOrientation?: boolean };
 }
 
 export interface SolveResult {
