@@ -59,7 +59,7 @@ LICENSE     MIT
       - [x] 4. Smart Validity Doctor (plain-language validity checks and fixes).
       - [x] 5. Explainable Solution (named stages and reasons where supplied by solver).
       - [x] 6. Learn / Hint Mode.
-      - [ ] 7. Camera scanner (getUserMedia, center calibration, confidence, upload/manual fixes).
+      - [x] 7. Camera scanner (getUserMedia, Lab center calibration, confidence, upload/manual fixes); 2 classifier tests pass.
       - [x] 8. In-app benchmark dashboard.
       - [ ] 9. Optional timer / solve-then-compare.
 - [ ] **Phase 6 — Quality/polish.** Loading states, IndexedDB PDB cache, error states,
