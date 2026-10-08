@@ -538,11 +538,18 @@ function buildLab() {
 }
 function buildDoctor() {
   const c = h("section", { class: "card" });
-  const feedback = h("p", { class: "subtle" }, ["Checking current painted stickers…"]);
-  const fixes = h("ul", {});
+  const statusIcon = h("span", { class: "doctor-icon", "aria-hidden": "true" }, [icon(ICONS.check, 20)]);
+  const statusTitle = h("strong", {}, ["Checking…"]);
+  const statusMsg = h("p", { class: "subtle" }, ["Reading the current painted stickers."]);
+  const status = h("div", { class: "doctor-status", role: "status", "aria-live": "polite" }, [statusIcon, h("div", { class: "doctor-status-body" }, [statusTitle, statusMsg])]);
+  const fixes = h("ul", { class: "fix-list" });
   const validate = () => {
     const v = validateFacelets(painterColors);
-    feedback.textContent = v.ok ? "This sticker arrangement describes a reachable cube." : v.message;
+    status.classList.toggle("ok", v.ok);
+    status.classList.toggle("bad", !v.ok);
+    statusIcon.replaceChildren(icon(v.ok ? ICONS.check : ICONS.alert, 20));
+    statusTitle.textContent = v.ok ? "Reachable cube" : "Needs fixing";
+    statusMsg.textContent = v.ok ? "These stickers describe a cube that can be solved from a real scramble." : v.message;
     fixes.replaceChildren();
     if (!v.ok) {
       const first = v.reasons[0];
@@ -559,7 +566,7 @@ function buildDoctor() {
       }
     }
   };
-  c.append(feedback, fixes, button("Check current painted state", validate));
+  c.append(status, fixes, h("div", { class: "row doctor-controls" }, [labelIconBtn(ICONS.stethoscope, "Re-check painted state", validate, true)]), h("p", { class: "subtle doctor-note" }, ["Paint stickers in the Solve view's color painter, then re-check the arrangement here."]));
   queueMicrotask(validate);
   return c;
 }
